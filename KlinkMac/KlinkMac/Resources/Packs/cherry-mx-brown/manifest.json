@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "id": "com.klinkmac.cherry-mx-brown",
+  "name": "Cherry MX Brown",
+  "author": "KlinkMac",
+  "version": "1.0.0",
+  "description": "Tactile, rounded, softer.",
+  "defaults": {
+    "down": "default-down.wav",
+    "up": "default-up.wav"
+  },
+  "keys": {
+    "49": {
+      "down": "space-down.wav",
+      "up": "space-up.wav"
+    },
+    "36": {
+      "down": "enter-down.wav",
+      "up": "enter-up.wav"
+    },
+    "51": {
+      "down": "backspace-down.wav",
+      "up": "backspace-up.wav"
+    }
+  }
+}
