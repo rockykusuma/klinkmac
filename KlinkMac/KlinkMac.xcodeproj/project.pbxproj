@@ -52,7 +52,6 @@
 				"Resources/Packs/cherry-mx-brown/manifest.json",
 				"Resources/Packs/cherry-mx-brown/space-down.wav",
 				"Resources/Packs/cherry-mx-brown/space-up.wav",
-				Resources/Packs/default/keydown.wav,
 				"Resources/Packs/topre-silent/backspace-down.wav",
 				"Resources/Packs/topre-silent/backspace-up.wav",
 				"Resources/Packs/topre-silent/default-down.wav",
