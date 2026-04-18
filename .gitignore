@@ -75,6 +75,7 @@ DerivedData/
 ROADMAP.md
 DESIGN.md
 CLAUDE.md
+phases/
 
 # Internal dev tools (keep only release.sh)
 Tools/LATENCY_LOG.md
