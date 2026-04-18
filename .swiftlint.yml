@@ -1,0 +1,105 @@
+# SwiftLint configuration for KlinkMac
+# Mirrors the coding style in CLAUDE.md: 120 columns, no print(), engine layer strictness.
+
+included:
+  - KlinkMac/KlinkMac
+
+excluded:
+  - KlinkMac/KlinkMacTests
+  - KlinkMac/KlinkMac.xcodeproj
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_comments: true
+  ignores_urls: true
+
+# CLAUDE.md: Never use print() in the codebase — use os.Logger.
+custom_rules:
+  no_print_statements:
+    name: "No print() statements"
+    regex: '(?<!\w)print\s*\('
+    message: "Use os.Logger instead of print(). See CLAUDE.md."
+    severity: error
+
+  no_nslogs:
+    name: "No NSLog statements"
+    regex: 'NSLog\s*\('
+    message: "Use os.Logger instead of NSLog(). See CLAUDE.md."
+    severity: error
+
+opt_in_rules:
+  - array_init
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - discouraged_object_literal
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - enum_case_associated_values_count
+  - explicit_init
+  - extension_access_modifier
+  - fallthrough
+  - fatal_error_message
+  - file_header
+  - first_where
+  - flatmap_over_map_reduce
+  - identical_operands
+  - joined_default_parameter
+  - last_where
+  - legacy_multiple
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - modifier_order
+  - nimble_operator
+  - operator_usage_whitespace
+  - optional_enum_case_matching
+  - overridden_super_call
+  - prefer_self_type_over_type_of_self
+  - prefer_zero_over_explicit_init
+  - private_action
+  - reduce_into
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - single_test_class
+  - sorted_first_last
+  - sorted_imports
+  - toggle_bool
+  - trailing_closure
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - yoda_condition
+
+disabled_rules:
+  - todo                      # TODOs are intentionally used for phased work
+  - trailing_whitespace       # formatter handles this
+  - opening_brace             # conflicts with trailing closure style
+
+# Engine layer: unsafe pointer usage is intentional — don't lint it as a warning.
+analyzer_rules:
+  - unused_declaration
+  - unused_import
+
+identifier_name:
+  min_length:
+    warning: 1      # short names like 'i', 'f', 'q' are legitimate in audio code
+  excluded:
+    - i
+    - f
+    - q
+    - v
+    - x
+    - y
+    - id
+
+type_name:
+  min_length: 2
+
+file_header:
+  required_pattern: '\/\/ .+'   # at least a one-line comment describing the file

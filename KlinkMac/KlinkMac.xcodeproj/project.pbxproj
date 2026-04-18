@@ -34,24 +34,136 @@
 			membershipExceptions = (
 				Assets.xcassets,
 				Info.plist,
-				"Resources/Packs/cherry-mx-blue/backspace-down.wav",
-				"Resources/Packs/cherry-mx-blue/backspace-up.wav",
-				"Resources/Packs/cherry-mx-blue/default-down.wav",
-				"Resources/Packs/cherry-mx-blue/default-up.wav",
-				"Resources/Packs/cherry-mx-blue/enter-down.wav",
-				"Resources/Packs/cherry-mx-blue/enter-up.wav",
-				"Resources/Packs/cherry-mx-blue/manifest.json",
-				"Resources/Packs/cherry-mx-blue/space-down.wav",
-				"Resources/Packs/cherry-mx-blue/space-up.wav",
-				"Resources/Packs/cherry-mx-brown/backspace-down.wav",
-				"Resources/Packs/cherry-mx-brown/backspace-up.wav",
-				"Resources/Packs/cherry-mx-brown/default-down.wav",
-				"Resources/Packs/cherry-mx-brown/default-up.wav",
-				"Resources/Packs/cherry-mx-brown/enter-down.wav",
-				"Resources/Packs/cherry-mx-brown/enter-up.wav",
-				"Resources/Packs/cherry-mx-brown/manifest.json",
-				"Resources/Packs/cherry-mx-brown/space-down.wav",
-				"Resources/Packs/cherry-mx-brown/space-up.wav",
+				"Resources/Packs/classic-keyboard/1.wav",
+				"Resources/Packs/classic-keyboard/2.wav",
+				"Resources/Packs/classic-keyboard/3.wav",
+				"Resources/Packs/classic-keyboard/4.wav",
+				"Resources/Packs/classic-keyboard/5.wav",
+				"Resources/Packs/classic-keyboard/7.wav",
+				"Resources/Packs/classic-keyboard/8.wav",
+				"Resources/Packs/classic-keyboard/9.wav",
+				"Resources/Packs/classic-keyboard/10.wav",
+				"Resources/Packs/classic-keyboard/11.wav",
+				"Resources/Packs/classic-keyboard/12.wav",
+				"Resources/Packs/classic-keyboard/13.wav",
+				"Resources/Packs/classic-keyboard/14.wav",
+				"Resources/Packs/classic-keyboard/15.wav",
+				"Resources/Packs/classic-keyboard/16.wav",
+				"Resources/Packs/classic-keyboard/17.wav",
+				"Resources/Packs/classic-keyboard/18.wav",
+				"Resources/Packs/classic-keyboard/19.wav",
+				"Resources/Packs/classic-keyboard/20.wav",
+				"Resources/Packs/classic-keyboard/21.wav",
+				"Resources/Packs/classic-keyboard/22.wav",
+				"Resources/Packs/classic-keyboard/23.wav",
+				"Resources/Packs/classic-keyboard/24.wav",
+				"Resources/Packs/classic-keyboard/enter.wav",
+				"Resources/Packs/classic-keyboard/manifest.json",
+				"Resources/Packs/classic-keyboard/space.wav",
+				"Resources/Packs/eg-crystal-purple/altpitch.wav",
+				"Resources/Packs/eg-crystal-purple/highpitch.wav",
+				"Resources/Packs/eg-crystal-purple/lowpitch.wav",
+				"Resources/Packs/eg-crystal-purple/manifest.json",
+				"Resources/Packs/eg-crystal-purple/midpitch.wav",
+				"Resources/Packs/eg-crystal-purple/spacebar.wav",
+				"Resources/Packs/eg-oreo/altpitch.wav",
+				"Resources/Packs/eg-oreo/highpitch.wav",
+				"Resources/Packs/eg-oreo/lowpitch.wav",
+				"Resources/Packs/eg-oreo/manifest.json",
+				"Resources/Packs/eg-oreo/midpitch.wav",
+				"Resources/Packs/eg-oreo/spacebar.wav",
+				Resources/Packs/lofi/keyboard1.wav,
+				Resources/Packs/lofi/keyboard2.wav,
+				Resources/Packs/lofi/keyboard3.wav,
+				Resources/Packs/lofi/keyboard4.wav,
+				Resources/Packs/lofi/manifest.json,
+				"Resources/Packs/mx-black-abs/altpitch.wav",
+				"Resources/Packs/mx-black-abs/highpitch.wav",
+				"Resources/Packs/mx-black-abs/lowpitch.wav",
+				"Resources/Packs/mx-black-abs/manifest.json",
+				"Resources/Packs/mx-black-abs/midpitch.wav",
+				"Resources/Packs/mx-black-abs/spacebar.wav",
+				"Resources/Packs/mx-black-pbt/altpitch.wav",
+				"Resources/Packs/mx-black-pbt/highpitch.wav",
+				"Resources/Packs/mx-black-pbt/lowpitch.wav",
+				"Resources/Packs/mx-black-pbt/manifest.json",
+				"Resources/Packs/mx-black-pbt/midpitch.wav",
+				"Resources/Packs/mx-black-pbt/spacebar.wav",
+				"Resources/Packs/mx-blue-abs/altpitch.wav",
+				"Resources/Packs/mx-blue-abs/highpitch.wav",
+				"Resources/Packs/mx-blue-abs/lowpitch.wav",
+				"Resources/Packs/mx-blue-abs/manifest.json",
+				"Resources/Packs/mx-blue-abs/midpitch.wav",
+				"Resources/Packs/mx-blue-abs/spacebar.wav",
+				"Resources/Packs/mx-blue-pbt/altpitch.wav",
+				"Resources/Packs/mx-blue-pbt/highpitch.wav",
+				"Resources/Packs/mx-blue-pbt/lowpitch.wav",
+				"Resources/Packs/mx-blue-pbt/manifest.json",
+				"Resources/Packs/mx-blue-pbt/midpitch.wav",
+				"Resources/Packs/mx-blue-pbt/spacebar.wav",
+				"Resources/Packs/mx-brown-abs/altpitch.wav",
+				"Resources/Packs/mx-brown-abs/highpitch.wav",
+				"Resources/Packs/mx-brown-abs/lowpitch.wav",
+				"Resources/Packs/mx-brown-abs/manifest.json",
+				"Resources/Packs/mx-brown-abs/midpitch.wav",
+				"Resources/Packs/mx-brown-abs/spacebar.wav",
+				"Resources/Packs/mx-brown-pbt/altpitch.wav",
+				"Resources/Packs/mx-brown-pbt/highpitch.wav",
+				"Resources/Packs/mx-brown-pbt/lowpitch.wav",
+				"Resources/Packs/mx-brown-pbt/manifest.json",
+				"Resources/Packs/mx-brown-pbt/midpitch.wav",
+				"Resources/Packs/mx-brown-pbt/spacebar.wav",
+				"Resources/Packs/mx-red-abs/altpitch.wav",
+				"Resources/Packs/mx-red-abs/highpitch.wav",
+				"Resources/Packs/mx-red-abs/lowpitch.wav",
+				"Resources/Packs/mx-red-abs/manifest.json",
+				"Resources/Packs/mx-red-abs/midpitch.wav",
+				"Resources/Packs/mx-red-abs/spacebar.wav",
+				"Resources/Packs/mx-red-pbt/altpitch.wav",
+				"Resources/Packs/mx-red-pbt/highpitch.wav",
+				"Resources/Packs/mx-red-pbt/lowpitch.wav",
+				"Resources/Packs/mx-red-pbt/manifest.json",
+				"Resources/Packs/mx-red-pbt/midpitch.wav",
+				"Resources/Packs/mx-red-pbt/spacebar.wav",
+				"Resources/Packs/nk-cream/_.wav",
+				"Resources/Packs/nk-cream/a.wav",
+				"Resources/Packs/nk-cream/b.wav",
+				"Resources/Packs/nk-cream/backspace.wav",
+				"Resources/Packs/nk-cream/c.wav",
+				"Resources/Packs/nk-cream/d.wav",
+				"Resources/Packs/nk-cream/e.wav",
+				"Resources/Packs/nk-cream/enter.wav",
+				"Resources/Packs/nk-cream/f.wav",
+				"Resources/Packs/nk-cream/g.wav",
+				"Resources/Packs/nk-cream/h.wav",
+				"Resources/Packs/nk-cream/i.wav",
+				"Resources/Packs/nk-cream/j.wav",
+				"Resources/Packs/nk-cream/k.wav",
+				"Resources/Packs/nk-cream/l.wav",
+				"Resources/Packs/nk-cream/m.wav",
+				"Resources/Packs/nk-cream/manifest.json",
+				"Resources/Packs/nk-cream/n.wav",
+				"Resources/Packs/nk-cream/o.wav",
+				"Resources/Packs/nk-cream/p.wav",
+				"Resources/Packs/nk-cream/q.wav",
+				"Resources/Packs/nk-cream/r.wav",
+				"Resources/Packs/nk-cream/s.wav",
+				"Resources/Packs/nk-cream/shift.wav",
+				"Resources/Packs/nk-cream/space.wav",
+				"Resources/Packs/nk-cream/t.wav",
+				"Resources/Packs/nk-cream/tab.wav",
+				"Resources/Packs/nk-cream/u.wav",
+				"Resources/Packs/nk-cream/v.wav",
+				"Resources/Packs/nk-cream/w.wav",
+				"Resources/Packs/nk-cream/x.wav",
+				"Resources/Packs/nk-cream/y.wav",
+				"Resources/Packs/nk-cream/z.wav",
+				"Resources/Packs/topre-purple-hybrid/altpitch.wav",
+				"Resources/Packs/topre-purple-hybrid/highpitch.wav",
+				"Resources/Packs/topre-purple-hybrid/lowpitch.wav",
+				"Resources/Packs/topre-purple-hybrid/manifest.json",
+				"Resources/Packs/topre-purple-hybrid/midpitch.wav",
+				"Resources/Packs/topre-purple-hybrid/spacebar.wav",
 				"Resources/Packs/topre-silent/backspace-down.wav",
 				"Resources/Packs/topre-silent/backspace-up.wav",
 				"Resources/Packs/topre-silent/default-down.wav",
@@ -107,8 +219,8 @@
 			children = (
 				960F97782F921D7D005E52AE /* Packs */,
 				96C14D592F92131100DA2425 /* KlinkMac */,
+				96BB00032F930000000AABB1 /* KlinkMacTests */,
 				96C14D582F92131100DA2425 /* Products */,
-				96FB1C0D2F923AA4008B18A4 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -119,14 +231,6 @@
 				96BB00022F930000000AABB1 /* KlinkMacTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		96FB1C0D2F923AA4008B18A4 /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				96BB00032F930000000AABB1 /* KlinkMacTests */,
-			);
-			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -159,6 +263,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 96C14D622F92131400DA2425 /* Build configuration list for PBXNativeTarget "KlinkMac" */;
 			buildPhases = (
+				95B65036085F459A92CB7CFC /* SwiftLint */,
 				96C14D532F92131100DA2425 /* Sources */,
 				96C14D542F92131100DA2425 /* Frameworks */,
 				960F97352F921B8A005E52AE /* Resources */,
@@ -230,6 +335,29 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		95B65036085F459A92CB7CFC /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = SwiftLint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			alwaysOutOfDate = 1;
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\nif which swiftlint > /dev/null; then\n  swiftlint --config \"${SRCROOT}/../.swiftlint.yml\"\nelse\n  echo \"warning: SwiftLint not installed. Install via: brew install swiftlint\"\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		96BB00052F930000000AABB1 /* Sources */ = {
@@ -345,7 +473,7 @@
 				DEVELOPMENT_TEAM = 6797R28K4A;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -409,7 +537,7 @@
 				DEVELOPMENT_TEAM = 6797R28K4A;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -434,6 +562,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = KlinkMac.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -457,6 +586,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rockykusuma.KlinkMac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
@@ -480,6 +610,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = KlinkMac.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -503,6 +634,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rockykusuma.KlinkMac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
