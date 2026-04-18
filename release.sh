@@ -8,7 +8,7 @@
 #   - App-specific password at NOTARYTOOL_PASSWORD (or use --keychain-profile)
 #
 # Usage:
-#   TEAM_ID=YOUR_TEAM_ID APP_BUNDLE_ID=com.klinkmac.KlinkMac ./Tools/release.sh
+#   TEAM_ID=YOUR_TEAM_ID APP_BUNDLE_ID=com.klinkmac.KlinkMac ./release.sh
 
 set -euo pipefail
 

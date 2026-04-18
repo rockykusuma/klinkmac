@@ -1,7 +1,7 @@
 // Canonical on-disk format for KlinkMac sound packs — format version 1 contract.
 import Foundation
 
-// MARK: - Manifest types (must match specs/sound-pack-format.md exactly)
+// MARK: - Manifest types (must match SOUND-PACK-FORMAT.md exactly)
 
 public struct PackManifest: Codable, Sendable {
     public let formatVersion: Int
