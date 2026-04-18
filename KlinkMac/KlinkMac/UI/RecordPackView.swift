@@ -17,6 +17,9 @@ struct RecordPackView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     metadataSection
+                    if let recorder = appState.packRecorder, recorder.micPermissionDenied {
+                        micPermissionCard
+                    }
                     statusSection
                     keyboardSection
                 }
@@ -58,47 +61,32 @@ struct RecordPackView: View {
 
     private var metadataSection: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("PACK NAME")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.klinkTextSecondary)
-                    .tracking(0.8)
-                TextField("My Custom Pack", text: $packName)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.klinkText)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.klinkSurface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .strokeBorder(Color.klinkSurfaceHigh, lineWidth: 1)
-                            )
-                    )
-            }
-            VStack(alignment: .leading, spacing: 6) {
-                Text("AUTHOR")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.klinkTextSecondary)
-                    .tracking(0.8)
-                TextField("Your name", text: $authorName)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.klinkText)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.klinkSurface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .strokeBorder(Color.klinkSurfaceHigh, lineWidth: 1)
-                            )
-                    )
-            }
-            .frame(maxWidth: 180)
+            metaField("PACK NAME", placeholder: "My Custom Pack", text: $packName)
+            metaField("AUTHOR", placeholder: "Your name", text: $authorName)
+                .frame(maxWidth: 180)
+        }
+    }
+
+    private func metaField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Color.klinkTextSecondary)
+                .tracking(0.8)
+            TextField(placeholder, text: text)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .foregroundStyle(Color.klinkText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.klinkSurface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(Color.klinkSurfaceHigh, lineWidth: 1)
+                        )
+                )
         }
     }
 
@@ -186,10 +174,48 @@ struct RecordPackView: View {
     @ViewBuilder
     private var keyboardSection: some View {
         if let recorder = appState.packRecorder {
-            KeyboardLayoutView(recorder: recorder) { keycode, label in
-                recorder.startListening(forKey: keycode, label: label)
-            }
+            KeyboardLayoutView(
+                recorder: recorder,
+                onKeyTap: { keycode, label in
+                    recorder.startListening(forKey: keycode, label: label)
+                },
+                onKeyPreview: { keycode, _ in
+                    recorder.previewRecording(forKey: keycode)
+                }
+            )
         }
+    }
+
+    // MARK: - Mic permission warning
+
+    private var micPermissionCard: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "mic.slash.fill")
+                .foregroundStyle(Color.klinkWarning)
+                .font(.system(size: 15))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Microphone access denied")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.klinkText)
+                Text("System Settings → Privacy & Security → Microphone → enable KlinkMac")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.klinkTextSecondary)
+            }
+            Spacer()
+            Button("Open Settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!) }
+            .buttonStyle(.plain)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(Color.klinkWarning)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.klinkWarning.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.klinkWarning.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Footer

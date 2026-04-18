@@ -17,6 +17,7 @@ final class PackRecorder {
 
     private(set) var state: RecordState = .idle
     private(set) var recordedKeys: Set<UInt32> = []
+    private(set) var micPermissionDenied: Bool = false
 
     // MARK: - Internals
 
@@ -29,6 +30,7 @@ final class PackRecorder {
     private var maxDurationTask: Task<Void, Never>?
     private var localMonitor: Any?
     private var globalMonitor: Any?
+    private var previewPlayer: AVAudioPlayer?
     private let tempDir: URL
     private let logger = Logger(subsystem: "com.klinkmac", category: "PackRecorder")
 
@@ -41,10 +43,32 @@ final class PackRecorder {
     // MARK: - Public API
 
     func startListening(forKey keycode: UInt32, label: String) {
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        switch status {
+        case .authorized:
+            break
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                Task { @MainActor [weak self] in
+                    self?.micPermissionDenied = !granted
+                    if granted { self?.startListening(forKey: keycode, label: label) }
+                }
+            }
+            return
+        default:
+            micPermissionDenied = true
+            return
+        }
+
         if case .recording = state { cancelCurrentRecording() }
         tailTask?.cancel(); tailTask = nil
         startKeyMonitors()
         state = .awaitingPress(keycode: keycode, label: label)
+    }
+
+    func previewRecording(forKey keycode: UInt32) {
+        guard let url = recordings[keycode] else { return }
+        previewPlayer?.stop(); previewPlayer = try? AVAudioPlayer(contentsOf: url); previewPlayer?.play()
     }
 
     func cancelListening() {
@@ -106,6 +130,7 @@ final class PackRecorder {
         maxDurationTask?.cancel(); maxDurationTask = nil
         cancelCurrentRecording()
         stopKeyMonitors()
+        previewPlayer?.stop(); previewPlayer = nil
         recordings.values.forEach { try? FileManager.default.removeItem(at: $0) }
         recordings = [:]
         recordedKeys = []
@@ -153,10 +178,7 @@ final class PackRecorder {
 
     private func cancelCurrentRecording() {
         isCapturing = false
-        if recEngine.isRunning {
-            recEngine.inputNode.removeTap(onBus: 0)
-            recEngine.stop()
-        }
+        if recEngine.isRunning { recEngine.inputNode.removeTap(onBus: 0); recEngine.stop() }
         accumSamples = []
     }
 

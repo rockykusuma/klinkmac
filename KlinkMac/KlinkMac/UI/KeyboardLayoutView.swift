@@ -97,6 +97,7 @@ let keyboardRows: [[KeyDef]] = [
 struct KeyboardLayoutView: View {
     let recorder: PackRecorder
     let onKeyTap: (UInt32, String) -> Void
+    var onKeyPreview: ((UInt32, String) -> Void)?
 
     private let keyHeight: CGFloat = 38
     private let keySpacing: CGFloat = 3
@@ -110,11 +111,15 @@ struct KeyboardLayoutView: View {
                         ForEach(keyboardRows[rowIdx]) { key in
                             KeyCell(
                                 key: key,
-                                cellState: cellState(for: key)
-                            ) {
-                                guard !key.isModifier else { return }
-                                onKeyTap(key.keycode, key.label)
-                            }
+                                cellState: cellState(for: key),
+                                onTap: {
+                                    guard !key.isModifier else { return }
+                                    onKeyTap(key.keycode, key.label)
+                                },
+                                onPreview: key.isModifier ? nil : onKeyPreview.map { cb in
+                                    { cb(key.keycode, key.label) }
+                                }
+                            )
                             .frame(width: baseW * key.widthUnits - keySpacing,
                                    height: keyHeight)
                         }
@@ -146,20 +151,36 @@ private struct KeyCell: View {
     let key: KeyDef
     let cellState: KeyCellState
     let onTap: () -> Void
+    var onPreview: (() -> Void)?
 
     @State private var isHovered = false
     @State private var pulse = false
     @Environment(\.klinkTheme) private var theme
 
     var body: some View {
-        Button(action: onTap) {
-            ZStack {
-                background
-                content
+        ZStack(alignment: .topTrailing) {
+            Button(action: onTap) {
+                ZStack {
+                    background
+                    content
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             }
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .buttonStyle(.plain)
+
+            if cellState == .recorded && isHovered, let preview = onPreview {
+                Button(action: preview) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 5, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(2.5)
+                        .background(Color.green.opacity(0.85), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .offset(x: -2, y: 2)
+                .transition(.scale.combined(with: .opacity))
+            }
         }
-        .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .onChange(of: cellState) { _, new in
             if new == .recording {
