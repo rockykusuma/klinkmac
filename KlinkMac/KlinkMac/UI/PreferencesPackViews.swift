@@ -52,6 +52,17 @@ struct PacksContent: View {
                         return true
                     } isTargeted: { isDropTargeted = $0 }
 
+                Button("Record Pack") {
+                    appState.showRecordPackWindow()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(theme.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(theme.accent.opacity(0.1),
+                            in: RoundedRectangle(cornerRadius: 8))
+
                 Button("Open Packs Folder") {
                     if let dir = try? PackLoader.userPacksDirectory() {
                         NSWorkspace.shared.open(dir)

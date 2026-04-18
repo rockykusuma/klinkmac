@@ -158,13 +158,6 @@ struct MenuBarView: View {
                 }
             }
 
-            footerButton(icon: "mic.fill", label: "Record Pack") {
-                dismissPanel()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    appState.showRecordPackWindow()
-                }
-            }
-
             Spacer()
 
             footerButton(icon: "power", label: "Quit",
