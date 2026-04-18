@@ -97,6 +97,11 @@ final class AppState {
 
     private(set) var isMeetingMuted: Bool = false
 
+    // MARK: Phase 4D — Record pack
+
+    private(set) var packRecorder: PackRecorder?
+    private var recordPackWindow: NSWindow?
+
     // MARK: Engine + monitor
 
     let accessibilityManager = AccessibilityManager()
@@ -289,6 +294,36 @@ final class AppState {
         } catch {
             logger.error("Key event monitor failed to start: \(error.localizedDescription)")
         }
+    }
+
+    func showRecordPackWindow() {
+        if recordPackWindow?.isVisible == true {
+            recordPackWindow?.makeKeyAndOrderFront(nil)
+            return
+        }
+        let recorder = PackRecorder()
+        packRecorder = recorder
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 480),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Record Your Own Pack"
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: RecordPackView(appState: self))
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        recordPackWindow = window
+    }
+
+    func closeRecordPackWindow() {
+        packRecorder?.cleanup()
+        packRecorder = nil
+        let window = recordPackWindow
+        recordPackWindow = nil
+        window?.close()
     }
 
     private func showPermissionWindow() {
