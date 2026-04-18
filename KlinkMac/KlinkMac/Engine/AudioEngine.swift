@@ -13,6 +13,7 @@ public final class AudioEngine {
     private let enabledFlag = ManagedAtomic<Bool>(true)
     private var sourceNode: AVAudioSourceNode?
     private var targetDeviceID: AudioDeviceID?
+    private var configChangeObserver: Any?
 
     // Updated in start() from the actual output device format.
     private(set) var sampleRate: Double = 48000
@@ -26,6 +27,20 @@ public final class AudioEngine {
 
     public func start() throws {
         eventQueue.resetThreadAssertions()
+
+        // Re-register on every start so we don't stack observers across restarts.
+        if let obs = configChangeObserver { NotificationCenter.default.removeObserver(obs) }
+        configChangeObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: nil
+        ) { [weak self] _ in
+            // CoreAudio changed the I/O thread (device plug/unplug, sleep/wake).
+            // Reset SPSC thread assertions then restart on the main thread.
+            self?.eventQueue.resetThreadAssertions()
+            DispatchQueue.main.async { try? self?.start() }
+        }
+
         applyOutputDevice(targetDeviceID)
         let outputNode = engine.outputNode
         let deviceRate = outputNode.outputFormat(forBus: 0).sampleRate
