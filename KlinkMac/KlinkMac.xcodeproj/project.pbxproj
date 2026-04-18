@@ -339,6 +339,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		95B65036085F459A92CB7CFC /* SwiftLint */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -351,7 +352,6 @@
 			);
 			outputPaths = (
 			);
-			alwaysOutOfDate = 1;
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\nif which swiftlint > /dev/null; then\n  swiftlint --config \"${SRCROOT}/../.swiftlint.yml\"\nelse\n  echo \"warning: SwiftLint not installed. Install via: brew install swiftlint\"\nfi\n";
