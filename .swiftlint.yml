@@ -1,5 +1,4 @@
 # SwiftLint configuration for KlinkMac
-# Mirrors the coding style in CLAUDE.md: 120 columns, no print(), engine layer strictness.
 
 included:
   - KlinkMac/KlinkMac
