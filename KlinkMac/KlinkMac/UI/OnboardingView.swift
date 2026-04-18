@@ -168,12 +168,27 @@ private struct StepPermission: View {
             }
 
             if appState.isTrusted {
-                Label("Permission granted", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.klinkSuccess)
+                VStack(spacing: 16) {
+                    Label("Permission granted", systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.klinkSuccess)
+                    GradientButton(label: "Continue", action: onNext)
+                }
             } else {
-                GradientButton(label: "Open System Settings…") {
-                    appState.accessibilityManager.openSystemSettings()
+                VStack(spacing: 12) {
+                    GradientButton(label: "Grant Permission") {
+                        appState.accessibilityManager.requestPermission()
+                    }
+                    Button("I've enabled it — Continue") {
+                        onNext()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.klinkTextSecondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.klinkSurfaceHigh,
+                                in: RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -187,11 +202,12 @@ private struct StepPermission: View {
 private struct StepTryIt: View {
     var onNext: () -> Void
     @State private var keyCount = 0
-    @State private var monitor: NSObject?
+    @State private var typedText = ""
+    @FocusState private var fieldFocused: Bool
     @Environment(\.klinkTheme) private var theme
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             ZStack {
                 Circle()
                     .fill((keyCount >= 5 ? Color.klinkSuccess : theme.accent).opacity(0.12))
@@ -209,13 +225,35 @@ private struct StepTryIt: View {
                     .foregroundStyle(Color.klinkText)
                 Text(keyCount >= 5
                      ? "You can hear the click! KlinkMac is working."
-                     : "Start typing anywhere — you should hear\nmechanical keyboard sounds with every key.")
+                     : "Type in the field below to hear\nmechanical keyboard sounds with every key.")
                     .font(.system(size: 13))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(Color.klinkTextSecondary)
                     .lineSpacing(3)
                     .animation(.default, value: keyCount >= 5)
             }
+
+            TextField("Type here…", text: $typedText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 14))
+                .foregroundStyle(Color.klinkText)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.klinkSurface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(
+                                    fieldFocused ? theme.accent.opacity(0.6) : Color.klinkSurfaceHigh,
+                                    lineWidth: 1.5
+                                )
+                        )
+                )
+                .focused($fieldFocused)
+                .frame(maxWidth: 280)
+                .onAppear { fieldFocused = true }
 
             HStack(spacing: 7) {
                 ForEach(0..<5, id: \.self) { i in
@@ -238,13 +276,8 @@ private struct StepTryIt: View {
         }
         .padding(36)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { _ in
-                if keyCount < 5 { keyCount += 1 }
-            } as? NSObject
-        }
-        .onDisappear {
-            if let m = monitor { NSEvent.removeMonitor(m) }
+        .onChange(of: typedText) { _, new in
+            if new.count > keyCount && keyCount < 5 { keyCount = min(new.count, 5) }
         }
     }
 }

@@ -39,7 +39,6 @@ final class AppState {
             updateEngineEnabled()
         }
     }
-
     func setMeetingMuteEnabled(_ enabled: Bool) {
         settings.meetingMuteEnabled = enabled
         updateEngineEnabled()
@@ -111,7 +110,8 @@ final class AppState {
     private let profileManager = ProfileManager()
     private var defaultPackID: String = ""
     private var permissionWindow: NSWindow?
-    private var permissionTask: Task<Void, Never>?
+    private var monitorStarted = false
+    private var localKeyMonitor: Any?
     private let logger = Logger(subsystem: "com.klinkmac", category: "AppState")
 
     // MARK: - Init
@@ -143,12 +143,13 @@ final class AppState {
 
         updateEngineEnabled()
 
+        startMonitor()
+
         if !accessibilityManager.isTrusted {
             showPermissionWindow()
             waitForPermissionThenStart()
         } else {
             isTrusted = true
-            startMonitor()
         }
     }
 
@@ -226,13 +227,9 @@ final class AppState {
 
     // MARK: - Private
 
-    private func loadPack(_ pack: InstalledPack) {
-        defaultPackID = pack.id
-        swapBank(to: pack, persistID: true)
-    }
-
-    private func loadPackForProfile(_ pack: InstalledPack) {
-        swapBank(to: pack, persistID: false)
+    private func loadPack(_ pack: InstalledPack, persistID: Bool = true) {
+        if persistID { defaultPackID = pack.id }
+        swapBank(to: pack, persistID: persistID)
     }
 
     private func swapBank(to pack: InstalledPack, persistID: Bool) {
@@ -256,10 +253,10 @@ final class AppState {
 
     private func handleProfileMatch(_ packID: String?) {
         if let packID, let pack = installedPacks.first(where: { $0.id == packID }) {
-            loadPackForProfile(pack)
+            loadPack(pack, persistID: false)
         } else {
             let fallback = installedPacks.first { $0.id == defaultPackID } ?? installedPacks.first
-            if let pack = fallback { loadPackForProfile(pack) }
+            if let pack = fallback { loadPack(pack, persistID: false) }
         }
     }
 
@@ -272,27 +269,30 @@ final class AppState {
     }
 
     private func waitForPermissionThenStart() {
-        accessibilityManager.startPolling()
-        permissionTask = Task { [weak self] in
-            guard let self else { return }
-            while !self.accessibilityManager.isTrusted {
-                guard !Task.isCancelled else { return }
-                try? await Task.sleep(for: .milliseconds(300))
-            }
-            guard !Task.isCancelled else { return }
-            self.isTrusted = true
-            self.settings.hasCompletedOnboarding = true
-            self.permissionWindow?.close()
-            self.permissionWindow = nil
+        accessibilityManager.onTrusted = { [weak self] in
+            guard let self, !self.monitorStarted else { return }
+            self.isTrusted = self.accessibilityManager.isTrusted
             self.startMonitor()
         }
+        accessibilityManager.startPolling()
     }
 
     private func startMonitor() {
+        monitorStarted = true
         do {
             try monitor.start()
+            if let m = localKeyMonitor { NSEvent.removeMonitor(m); localKeyMonitor = nil }
         } catch {
+            monitorStarted = false
             logger.error("Key event monitor failed to start: \(error.localizedDescription)")
+            guard localKeyMonitor == nil else { return }
+            let q = audioEngine.eventQueue
+            localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { event in
+                _ = q.push(KeyEvent(keycode: UInt16(event.keyCode),
+                                    isDown: event.type == .keyDown,
+                                    timestamp: mach_absolute_time()))
+                return event
+            }
         }
     }
 
