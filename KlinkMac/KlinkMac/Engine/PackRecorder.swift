@@ -34,6 +34,7 @@ final class PackRecorder {
     private var previewPlayer: AVAudioPlayer?
     private var upRecordings: [UInt32: URL] = [:]
     private var splitIndex: Int = 0
+    private var recordingStartTime = Date()
     private var isAutoMode = false
     private static let modifierKeycodes: Set<UInt32> = [54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
     private let tempDir: URL
@@ -206,6 +207,7 @@ final class PackRecorder {
     private func beginRecording(keycode: UInt32, label: String) {
         accumSamples = []
         isCapturing = true
+        recordingStartTime = Date()
         state = .recording(keycode: keycode, label: label)
 
         let inputNode = recEngine.inputNode
@@ -242,7 +244,8 @@ final class PackRecorder {
 
     private func scheduleStop(keycode: UInt32) {
         guard case .recording(let kc, _) = state, kc == keycode, tailTask == nil else { return }
-        maxDurationTask?.cancel(); maxDurationTask = nil; splitIndex = accumSamples.count
+        maxDurationTask?.cancel(); maxDurationTask = nil
+        splitIndex = Int(Date().timeIntervalSince(recordingStartTime) * tapSampleRate)
         tailTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(100))
             guard !Task.isCancelled else { return }
