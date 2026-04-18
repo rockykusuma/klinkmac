@@ -17,6 +17,9 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 
+	<key>NSMicrophoneUsageDescription</key>
+	<string>KlinkMac uses the microphone to record keyboard sounds for custom sound packs.</string>
+
 	<!-- Menu bar app — no Dock icon -->
 	<key>LSUIElement</key>
 	<true/>
