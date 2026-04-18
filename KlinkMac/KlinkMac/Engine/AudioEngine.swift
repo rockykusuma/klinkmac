@@ -1,6 +1,7 @@
 // Audio render path — AVAudioSourceNode drains EventQueue and renders voices. No locks, no ARC.
 import Atomics
 import AVFoundation
+import CoreAudio
 import Foundation
 
 public final class AudioEngine {
@@ -27,9 +28,6 @@ public final class AudioEngine {
         sampleRate = deviceRate > 0 ? deviceRate : 48000
 
         let fmt = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-
-        // Minimize hardware buffer to 128 frames (≈2.67ms at 48kHz).
-        setHardwareBufferSize(128, on: outputNode)
 
         let alloc   = allocator
         let q       = eventQueue
@@ -78,6 +76,9 @@ public final class AudioEngine {
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: fmt)
         try engine.start()
+        // Set after engine start so the HAL device is active. Targets the default
+        // output device via CoreAudio — affects all apps, but 128 frames is benign.
+        setHardwareBufferSize(128)
     }
 
     public func stop() { engine.stop() }
@@ -88,14 +89,31 @@ public final class AudioEngine {
 
     // MARK: - Hardware buffer configuration
 
-    private func setHardwareBufferSize(_ frames: UInt32, on node: AVAudioOutputNode) {
-        guard let audioUnit = node.audioUnit else { return }
-        var size = frames
-        AudioUnitSetProperty(audioUnit,
-                             kAudioDevicePropertyBufferFrameSize,
-                             kAudioUnitScope_Global,
-                             0,
-                             &size,
-                             UInt32(MemoryLayout<UInt32>.size))
+    private func setHardwareBufferSize(_ frames: UInt32) {
+        var deviceID = AudioDeviceID(0)
+        var propSize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &propSize, &deviceID
+        ) == noErr else { return }
+
+        addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyBufferFrameSize,
+            mScope: kAudioObjectPropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var frameSize = frames
+        let status = AudioObjectSetPropertyData(
+            deviceID, &addr, 0, nil, UInt32(MemoryLayout<UInt32>.size), &frameSize
+        )
+        if status != noErr {
+            logger.warning("Could not set hardware buffer size to \(frames) frames (OSStatus \(status))")
+        }
     }
+
+    private let logger = Logger(subsystem: "com.klinkmac", category: "AudioEngine")
 }
