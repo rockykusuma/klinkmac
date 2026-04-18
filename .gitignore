@@ -75,3 +75,9 @@ DerivedData/
 ROADMAP.md
 DESIGN.md
 CLAUDE.md
+
+# Internal dev tools (keep only release.sh)
+Tools/LATENCY_LOG.md
+Tools/latency-measurement.md
+Tools/mechvibes-to-klinkpack.py
+Tools/stress-test.swift
