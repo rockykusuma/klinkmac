@@ -16,6 +16,7 @@ public final class AtomicBankPointer {
         let oldBits = bits.exchange(newBits, ordering: .releasing)
         if oldBits != 0, let ptr = UnsafeRawPointer(bitPattern: oldBits) {
             let old = Unmanaged<SampleBank>.fromOpaque(ptr)
+            // 5 s >> max voice duration (500 ms cap in PackLoader) + worst-case audio callback.
             releaseQueue.asyncAfter(deadline: .now() + 5) { old.release() }
         }
     }

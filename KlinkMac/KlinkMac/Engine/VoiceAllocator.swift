@@ -20,11 +20,15 @@ public final class VoiceAllocator {
         voices = [Voice](repeating: Voice(), count: poolSize)
     }
 
+    // Swift 6 infers an actor-isolated deinit for types transitively owned by @MainActor classes.
+    // Explicitly opt out — VoiceAllocator is audio-thread-only; its cleanup is trivially thread-safe.
+    nonisolated deinit {}
+
     public func allocate(samplePtr: UnsafePointer<Float>, frames: Int) {
         rngState = rngState &* 6364136223846793005 &+ 1442695040888963407
         let pitchRatio = 1.0 + (Float(UInt32(rngState >> 32)) / Float(UInt32.max)) * 0.05 - 0.025
 
-        var idx = voices.firstIndex(where: { !$0.active })
+        var idx = voices.firstIndex { !$0.active }
         if idx == nil {
             var minRemaining = Int.max
             for i in 0..<voices.count {

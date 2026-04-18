@@ -1,6 +1,6 @@
 // Audio render path — AVAudioSourceNode drains EventQueue and renders voices. No locks, no ARC.
-import AVFoundation
 import Atomics
+import AVFoundation
 import Foundation
 
 public final class AudioEngine {

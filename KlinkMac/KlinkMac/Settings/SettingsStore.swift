@@ -1,16 +1,15 @@
 // UserDefaults-backed settings. Observable from any SwiftUI view.
 import Foundation
-import ServiceManagement
 import os
+import ServiceManagement
 
 @MainActor
 @Observable
 final class SettingsStore {
-
     // MARK: - Persisted properties
 
     var volume: Float = 0.8 {
-        didSet { UserDefaults.standard.set(volume, forKey: Key.volume) }
+        didSet { UserDefaults.standard.set(Double(volume), forKey: Key.volume) }
     }
 
     var activePackID: String = "" {
@@ -24,7 +23,9 @@ final class SettingsStore {
     var launchAtLogin: Bool = false {
         didSet {
             UserDefaults.standard.set(launchAtLogin, forKey: Key.launchAtLogin)
-            applyLaunchAtLogin(launchAtLogin)
+            if !_suppressLaunchAtLoginService {
+                applyLaunchAtLogin(launchAtLogin)
+            }
         }
     }
 
@@ -32,11 +33,15 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: Key.hasCompletedOnboarding) }
     }
 
+    var themeID: String = "jade" {
+        didSet { UserDefaults.standard.set(themeID, forKey: Key.themeID) }
+    }
+
     // MARK: - Init
 
     init() {
         let d = UserDefaults.standard
-        let storedVolume = d.float(forKey: Key.volume)
+        let storedVolume = Float(d.double(forKey: Key.volume))
         volume   = storedVolume > 0 ? storedVolume : 0.8
         isPaused = d.bool(forKey: Key.isPaused)
         hasCompletedOnboarding = d.bool(forKey: Key.hasCompletedOnboarding)
@@ -48,9 +53,12 @@ final class SettingsStore {
         }
 
         activePackID = d.string(forKey: Key.activePackID) ?? ""
+        themeID = d.string(forKey: Key.themeID) ?? "jade"
     }
 
     // MARK: - Launch-at-login
+
+    private var _suppressLaunchAtLoginService = false
 
     private func applyLaunchAtLogin(_ enable: Bool) {
         if enable {
@@ -58,6 +66,9 @@ final class SettingsStore {
                 try SMAppService.mainApp.register()
             } catch {
                 logger.error("Launch-at-login register failed: \(error.localizedDescription)")
+                _suppressLaunchAtLoginService = true
+                launchAtLogin = false
+                _suppressLaunchAtLoginService = false
             }
         } else {
             Task {
@@ -65,6 +76,9 @@ final class SettingsStore {
                     try await SMAppService.mainApp.unregister()
                 } catch {
                     logger.error("Launch-at-login unregister failed: \(error.localizedDescription)")
+                    self._suppressLaunchAtLoginService = true
+                    self.launchAtLogin = true
+                    self._suppressLaunchAtLoginService = false
                 }
             }
         }
@@ -78,6 +92,7 @@ final class SettingsStore {
         static let isPaused              = "isPaused"
         static let launchAtLogin         = "launchAtLogin"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let themeID               = "themeID"
     }
 
     private let logger = Logger(subsystem: "com.klinkmac", category: "SettingsStore")

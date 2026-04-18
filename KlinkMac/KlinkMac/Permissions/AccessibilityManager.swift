@@ -1,7 +1,7 @@
 // Checks and polls Accessibility permission state.
-import Foundation
-import ApplicationServices
 import AppKit
+import ApplicationServices
+import Foundation
 
 @MainActor
 @Observable

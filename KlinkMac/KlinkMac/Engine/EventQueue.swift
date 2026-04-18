@@ -1,5 +1,6 @@
 // Lock-free SPSC ring buffer: event tap thread produces, audio render thread consumes.
 import Atomics
+import Foundation
 import os
 
 // @unchecked Sendable: thread-safety guaranteed by SPSC contract + atomic indices.
@@ -12,6 +13,12 @@ public final class EventQueue: @unchecked Sendable {
     private let readIndex  = ManagedAtomic<UInt32>(0)
     private let logger = Logger(subsystem: "com.klinkmac", category: "EventQueue")
 
+#if DEBUG
+    // Debug-only: record first caller's thread and assert subsequent calls match.
+    nonisolated(unsafe) private var _pushThread: Thread?
+    nonisolated(unsafe) private var _popThread: Thread?
+#endif
+
     public init(capacity: Int = 256) {
         var cap = 1
         while cap < capacity { cap <<= 1 }
@@ -23,7 +30,11 @@ public final class EventQueue: @unchecked Sendable {
 
     /// Producer — called from event tap thread only.
     @discardableResult
-    public nonisolated func push(_ event: KeyEvent) -> Bool {
+    nonisolated public func push(_ event: KeyEvent) -> Bool {
+#if DEBUG
+        if _pushThread == nil { _pushThread = Thread.current }
+        assert(_pushThread === Thread.current, "EventQueue.push called from multiple threads — SPSC contract violated")
+#endif
         let write = writeIndex.load(ordering: .relaxed)
         let read  = readIndex.load(ordering: .acquiring)
         guard write &- read < capacity else {
@@ -36,7 +47,11 @@ public final class EventQueue: @unchecked Sendable {
     }
 
     /// Consumer — called from audio render thread only.
-    public nonisolated func pop() -> KeyEvent? {
+    nonisolated public func pop() -> KeyEvent? {
+#if DEBUG
+        if _popThread == nil { _popThread = Thread.current }
+        assert(_popThread === Thread.current, "EventQueue.pop called from multiple threads — SPSC contract violated")
+#endif
         let read  = readIndex.load(ordering: .relaxed)
         let write = writeIndex.load(ordering: .acquiring)
         guard read != write else { return nil }

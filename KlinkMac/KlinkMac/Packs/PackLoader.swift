@@ -4,7 +4,6 @@ import Foundation
 import os
 
 public final class PackLoader {
-
     // MARK: - Public entry points
 
     /// Load a bundled pack by folder name (e.g. "cherry-mx-blue").
@@ -31,6 +30,18 @@ public final class PackLoader {
         let tmpDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: tmpDir) }
+
+        // Verify ZIP magic bytes before spawning a subprocess.
+        guard let handle = FileHandle(forReadingAtPath: zipURL.path) else {
+            throw PackValidationError.malformedManifest("Cannot open file for reading.")
+        }
+        let magic = handle.readData(ofLength: 4)
+        handle.closeFile()
+        guard magic.count == 4,
+              magic[0] == 0x50, magic[1] == 0x4B,
+              magic[2] == 0x03, magic[3] == 0x04 else {
+            throw PackValidationError.malformedManifest("File is not a valid ZIP archive.")
+        }
 
         // Unzip using system tool — no external dependencies needed.
         let proc = Process()
@@ -103,43 +114,57 @@ public final class PackLoader {
             throw PackValidationError.missingManifest
         }
         let data = try Data(contentsOf: manifestURL)
-
         let manifest: PackManifest
         do {
             manifest = try JSONDecoder().decode(PackManifest.self, from: data)
         } catch {
             throw PackValidationError.malformedManifest(error.localizedDescription)
         }
-
         guard manifest.formatVersion <= supportedPackFormatVersion else {
             throw PackValidationError.unsupportedFormatVersion(manifest.formatVersion)
         }
+        try validateManifestIdentity(manifest)
+        try validateFilePaths(collectReferencedPaths(from: manifest), in: packURL)
+        return manifest
+    }
+
+    private static func validateManifestIdentity(_ manifest: PackManifest) throws {
         guard !manifest.id.isEmpty else { throw PackValidationError.missingRequiredField("id") }
         guard manifest.id.range(of: #"^[a-z0-9.\-]{1,128}$"#, options: .regularExpression) != nil else {
             throw PackValidationError.malformedManifest("id '\(manifest.id)' contains invalid characters.")
         }
-        guard let defaultDown = manifest.defaults.down, !defaultDown.isEmpty else {
+        guard !(manifest.defaults.down ?? "").isEmpty else {
             throw PackValidationError.missingRequiredField("defaults.down")
         }
+    }
 
-        // Validate all referenced file paths (no traversal, must exist).
-        var referencedPaths = [defaultDown]
-        if let up = manifest.defaults.up { referencedPaths.append(up) }
+    private static func collectReferencedPaths(from manifest: PackManifest) -> [String] {
+        var paths: [String] = []
+        if let d = manifest.defaults.down { paths.append(d) }
+        if let u = manifest.defaults.up { paths.append(u) }
         for mapping in manifest.keys?.values ?? [:].values {
-            if let d = mapping.down { referencedPaths.append(d) }
-            if let u = mapping.up { referencedPaths.append(u) }
+            if let d = mapping.down { paths.append(d) }
+            if let u = mapping.up { paths.append(u) }
         }
-        for path in referencedPaths {
+        return paths
+    }
+
+    private static func validateFilePaths(_ paths: [String], in packURL: URL) throws {
+        let packResolved = packURL.resolvingSymlinksInPath().standardized
+        for path in paths {
             guard !path.contains(".."), !path.hasPrefix("/") else {
                 throw PackValidationError.pathTraversalAttempt(path)
             }
             let fileURL = packURL.appendingPathComponent(path)
+            // Resolve symlinks so a symlink pointing outside the pack directory is caught.
+            let resolved = fileURL.resolvingSymlinksInPath().standardized
+            guard resolved.path.hasPrefix(packResolved.path + "/") else {
+                throw PackValidationError.pathTraversalAttempt(path)
+            }
             guard FileManager.default.fileExists(atPath: fileURL.path) else {
                 throw PackValidationError.missingAudioFile(path)
             }
         }
-
-        return manifest
     }
 
     // MARK: - Sample decoding
@@ -150,57 +175,16 @@ public final class PackLoader {
         let targetFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         var allocations: [UnsafeMutablePointer<Float>] = []
 
-        func loadWAV(_ filename: String, gain: Float = 1.0) throws -> (UnsafePointer<Float>, Int) {
-            let url = packURL.appendingPathComponent(filename)
-            let file = try AVAudioFile(forReading: url)
-
-            // Enforce 500ms duration limit.
-            let durationMs = Int(Double(file.length) / file.fileFormat.sampleRate * 1000)
-            if durationMs > 500 {
-                throw PackValidationError.audioDurationTooLong(file: filename, durationMs: durationMs)
-            }
-
-            let srcFmt = file.processingFormat
-            let srcFrames = AVAudioFrameCount(file.length)
-            guard let srcBuf = AVAudioPCMBuffer(pcmFormat: srcFmt, frameCapacity: srcFrames) else {
-                throw PackValidationError.malformedManifest("Could not allocate buffer for '\(filename)'.")
-            }
-            try file.read(into: srcBuf)
-
-            let dstCapacity = AVAudioFrameCount(
-                Double(srcFrames) * sampleRate / srcFmt.sampleRate
-            ) + 16
-            guard let dstBuf = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: dstCapacity),
-                  let converter = AVAudioConverter(from: srcFmt, to: targetFormat) else {
-                throw PackValidationError.malformedManifest("Format conversion setup failed for '\(filename)'.")
-            }
-
-            var convError: NSError?
-            converter.convert(to: dstBuf, error: &convError) { _, outStatus in
-                outStatus.pointee = .haveData
-                return srcBuf
-            }
-            if let e = convError { throw e }
-
-            let count = Int(dstBuf.frameLength)
-            let ptr = UnsafeMutablePointer<Float>.allocate(capacity: count)
-            if let ch = dstBuf.floatChannelData?[0] {
-                if gain == 1.0 {
-                    ptr.initialize(from: ch, count: count)
-                } else {
-                    for i in 0..<count { ptr[i] = ch[i] * gain }
-                }
-            }
-            allocations.append(ptr)
-            return (UnsafePointer(ptr), count)
+        func wav(_ name: String, gain: Float = 1.0) throws -> (UnsafePointer<Float>, Int) {
+            try decodeWAV(name, packURL: packURL, fmt: targetFormat, gain: gain, into: &allocations)
         }
 
         let defaultGain = manifest.defaults.gain ?? 1.0
-        let (ddPtr, ddCount) = try loadWAV(manifest.defaults.down!, gain: defaultGain)
-        var duPtr: UnsafePointer<Float>? = nil
+        let (ddPtr, ddCount) = try wav(manifest.defaults.down!, gain: defaultGain)
+        var duPtr: UnsafePointer<Float>?
         var duCount = 0
         if let upFile = manifest.defaults.up {
-            let (p, c) = try loadWAV(upFile, gain: defaultGain)
+            let (p, c) = try wav(upFile, gain: defaultGain)
             duPtr = p; duCount = c
         }
 
@@ -212,12 +196,12 @@ public final class PackLoader {
             guard let kc = UInt16(kcStr) else { continue }
             let gain = mapping.gain ?? 1.0
             guard let downFile = mapping.down ?? manifest.defaults.down else { continue }
-            let (dPtr, dCount) = try loadWAV(downFile, gain: gain)
-            var uPtr: UnsafePointer<Float>? = nil
+            let (dPtr, dCount) = try wav(downFile, gain: gain)
+            var uPtr: UnsafePointer<Float>?
             var uCount = 0
             let upFile = mapping.up ?? (mapping.down == nil ? manifest.defaults.up : nil)
             if let f = upFile {
-                let (p, c) = try loadWAV(f, gain: gain)
+                let (p, c) = try wav(f, gain: gain)
                 uPtr = p; uCount = c
             }
             samples[kc] = PackSample(downFrames: dPtr, downFrameCount: dCount,
@@ -226,6 +210,57 @@ public final class PackLoader {
 
         return SampleBank(name: manifest.name, defaultSample: defaultSample,
                           keySamples: samples, allocations: allocations)
+    }
+
+    // Decodes a WAV file to a raw Float buffer at the target sample rate and gain.
+    // Appends the allocation to `allocations` so the caller retains ownership.
+    private static func decodeWAV(
+        _ filename: String,
+        packURL: URL,
+        fmt targetFormat: AVAudioFormat,
+        gain: Float,
+        into allocations: inout [UnsafeMutablePointer<Float>]
+    ) throws -> (UnsafePointer<Float>, Int) {
+        let file = try AVAudioFile(forReading: packURL.appendingPathComponent(filename))
+
+        let durationMs = Int(Double(file.length) / file.fileFormat.sampleRate * 1000)
+        if durationMs > 500 {
+            throw PackValidationError.audioDurationTooLong(file: filename, durationMs: durationMs)
+        }
+
+        let srcFmt = file.processingFormat
+        let srcFrames = AVAudioFrameCount(file.length)
+        guard let srcBuf = AVAudioPCMBuffer(pcmFormat: srcFmt, frameCapacity: srcFrames) else {
+            throw PackValidationError.malformedManifest("Could not allocate buffer for '\(filename)'.")
+        }
+        try file.read(into: srcBuf)
+
+        let dstCapacity = AVAudioFrameCount(
+            Double(srcFrames) * targetFormat.sampleRate / srcFmt.sampleRate
+        ) + 16
+        guard let dstBuf = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: dstCapacity),
+              let converter = AVAudioConverter(from: srcFmt, to: targetFormat) else {
+            throw PackValidationError.malformedManifest("Format conversion setup failed for '\(filename)'.")
+        }
+
+        var convError: NSError?
+        converter.convert(to: dstBuf, error: &convError) { _, outStatus in
+            outStatus.pointee = .haveData
+            return srcBuf
+        }
+        if let e = convError { throw e }
+
+        let count = Int(dstBuf.frameLength)
+        let ptr = UnsafeMutablePointer<Float>.allocate(capacity: count)
+        if let ch = dstBuf.floatChannelData?[0] {
+            if gain == 1.0 {
+                ptr.initialize(from: ch, count: count)
+            } else {
+                for i in 0..<count { ptr[i] = ch[i] * gain }
+            }
+        }
+        allocations.append(ptr)
+        return (UnsafePointer(ptr), count)
     }
 
     // MARK: - Helpers
@@ -237,9 +272,11 @@ public final class PackLoader {
             return dir
         }
         // Otherwise look for a single subdirectory.
-        let entries = try fm.contentsOfDirectory(at: dir,
-                                                  includingPropertiesForKeys: [.isDirectoryKey],
-                                                  options: .skipsHiddenFiles)
+        let entries = try fm.contentsOfDirectory(
+            at: dir,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: .skipsHiddenFiles
+        )
         let subdirs = entries.filter {
             (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
         }

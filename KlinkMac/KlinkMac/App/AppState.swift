@@ -1,8 +1,8 @@
 // Observable wiring: permissions, event monitor → SPSC queue → audio engine.
 import AppKit
 import Foundation
-import SwiftUI
 import os
+import SwiftUI
 
 // MARK: - Pack model
 
@@ -20,7 +20,6 @@ struct InstalledPack: Identifiable, Sendable {
 @MainActor
 @Observable
 final class AppState {
-
     // MARK: Settings (persisted)
 
     var settings = SettingsStore()
@@ -44,7 +43,7 @@ final class AppState {
     // MARK: Pack state
 
     var installedPacks: [InstalledPack] = []
-    var activePack: InstalledPack? = nil
+    var activePack: InstalledPack?
 
     // MARK: Permission state
 
@@ -56,6 +55,8 @@ final class AppState {
     let audioEngine = AudioEngine()
     private let monitor = KeyEventMonitor()
     private var permissionWindow: NSWindow?
+    private var permissionTask: Task<Void, Never>?
+    private let logger = Logger(subsystem: "com.klinkmac", category: "AppState")
 
     // MARK: - Init
 
@@ -66,7 +67,8 @@ final class AppState {
         discoverPacks()
 
         let savedID = settings.activePackID
-        let startPack = installedPacks.first(where: { $0.id == savedID })
+        let startPack = installedPacks.first { $0.id == savedID }
+                     ?? installedPacks.first { $0.id == "com.klinkmac.classic-keyboard" }
                      ?? installedPacks.first
         if let pack = startPack {
             loadPack(pack)
@@ -82,7 +84,7 @@ final class AppState {
             waitForPermissionThenStart()
         } else {
             isTrusted = true
-            try? monitor.start()
+            startMonitor()
         }
     }
 
@@ -185,16 +187,26 @@ final class AppState {
 
     private func waitForPermissionThenStart() {
         accessibilityManager.startPolling()
-        Task { [weak self] in
+        permissionTask = Task { [weak self] in
             guard let self else { return }
             while !self.accessibilityManager.isTrusted {
+                guard !Task.isCancelled else { return }
                 try? await Task.sleep(for: .milliseconds(300))
             }
+            guard !Task.isCancelled else { return }
             self.isTrusted = true
             self.settings.hasCompletedOnboarding = true
             self.permissionWindow?.close()
             self.permissionWindow = nil
-            try? self.monitor.start()
+            self.startMonitor()
+        }
+    }
+
+    private func startMonitor() {
+        do {
+            try monitor.start()
+        } catch {
+            logger.error("Key event monitor failed to start: \(error.localizedDescription)")
         }
     }
 
