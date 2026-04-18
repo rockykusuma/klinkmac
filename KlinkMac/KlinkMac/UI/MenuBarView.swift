@@ -10,6 +10,7 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 0) {
             headerSection
+            if appState.isMeetingMuted { meetingMuteBanner }
             waveSection
             Divider().background(Color.klinkSurfaceHigh)
             packsSection
@@ -43,10 +44,25 @@ struct MenuBarView: View {
         .padding(.vertical, 11)
     }
 
+    // MARK: - Meeting mute banner
+
+    private var meetingMuteBanner: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "mic.slash.fill")
+                .font(.system(size: 10, weight: .medium))
+            Text("Muted — meeting in progress")
+                .font(.system(size: 11, weight: .medium))
+        }
+        .foregroundStyle(Color.klinkWarning)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(Color.klinkWarning.opacity(0.1))
+    }
+
     // MARK: - Waveform
 
     private var waveSection: some View {
-        WaveformView(isActive: appState.isEnabled)
+        WaveformView(isActive: appState.isEnabled && !appState.isMeetingMuted)
             .frame(height: 60)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

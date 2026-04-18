@@ -37,6 +37,18 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(themeID, forKey: Key.themeID) }
     }
 
+    var meetingMuteEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(meetingMuteEnabled, forKey: Key.meetingMuteEnabled) }
+    }
+
+    var profiles: [AppProfile] = [] {
+        didSet {
+            if let data = try? JSONEncoder().encode(profiles) {
+                UserDefaults.standard.set(data, forKey: Key.profiles)
+            }
+        }
+    }
+
     // MARK: - Init
 
     init() {
@@ -45,6 +57,11 @@ final class SettingsStore {
         volume   = storedVolume > 0 ? storedVolume : 0.8
         isPaused = d.bool(forKey: Key.isPaused)
         hasCompletedOnboarding = d.bool(forKey: Key.hasCompletedOnboarding)
+        meetingMuteEnabled = d.bool(forKey: Key.meetingMuteEnabled)
+        if let data = d.data(forKey: Key.profiles),
+           let decoded = try? JSONDecoder().decode([AppProfile].self, from: data) {
+            profiles = decoded
+        }
 
         // Reflect actual SMAppService state rather than a possibly stale stored bool.
         launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -93,6 +110,8 @@ final class SettingsStore {
         static let launchAtLogin         = "launchAtLogin"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let themeID               = "themeID"
+        static let meetingMuteEnabled    = "meetingMuteEnabled"
+        static let profiles              = "profiles"
     }
 
     private let logger = Logger(subsystem: "com.klinkmac", category: "SettingsStore")

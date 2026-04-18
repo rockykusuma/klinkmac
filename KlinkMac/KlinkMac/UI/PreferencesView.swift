@@ -7,21 +7,23 @@ struct PreferencesView: View {
     @Environment(\.klinkTheme) private var theme
 
     enum PrefTab: CaseIterable {
-        case general, packs, about
+        case general, packs, profiles, about
 
         var title: String {
             switch self {
-            case .general: "General"
-            case .packs:   "Packs"
-            case .about:   "About"
+            case .general:  "General"
+            case .packs:    "Packs"
+            case .profiles: "Profiles"
+            case .about:    "About"
             }
         }
 
         var icon: String {
             switch self {
-            case .general: "gearshape.fill"
-            case .packs:   "music.note.list"
-            case .about:   "info.circle.fill"
+            case .general:  "gearshape.fill"
+            case .packs:    "music.note.list"
+            case .profiles: "app.connected.to.app.below.fill"
+            case .about:    "info.circle.fill"
             }
         }
     }
@@ -74,6 +76,9 @@ struct PreferencesView: View {
                 .transition(.opacity)
         } else if selectedTab == .packs {
             PacksContent(appState: appState)
+                .transition(.opacity)
+        } else if selectedTab == .profiles {
+            ProfilesContent(appState: appState)
                 .transition(.opacity)
         } else {
             AboutContent()
@@ -184,9 +189,14 @@ private struct GeneralContent: View {
                                 set: { appState.isEnabled = $0 }
                             ))
                         }
-                        Divider()
-                            .background(Color.klinkSurfaceHigh)
-                            .padding(.leading, 46)
+                        Divider().background(Color.klinkSurfaceHigh).padding(.leading, 46)
+                        settingsRow(label: "Meeting mute", icon: "mic.slash.fill") {
+                            KlinkToggle(isOn: Binding(
+                                get: { appState.settings.meetingMuteEnabled },
+                                set: { appState.setMeetingMuteEnabled($0) }
+                            ))
+                        }
+                        Divider().background(Color.klinkSurfaceHigh).padding(.leading, 46)
                         settingsRow(label: "Launch at login", icon: "arrow.up.circle.fill") {
                             KlinkToggle(isOn: Binding(
                                 get: { appState.settings.launchAtLogin },

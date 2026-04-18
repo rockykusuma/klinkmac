@@ -28,8 +28,23 @@ final class AppState {
         get { !settings.isPaused }
         set {
             settings.isPaused = !newValue
-            audioEngine.setEnabled(newValue)
+            updateEngineEnabled()
         }
+    }
+
+    func setMeetingMuteEnabled(_ enabled: Bool) {
+        settings.meetingMuteEnabled = enabled
+        updateEngineEnabled()
+    }
+
+    func addProfile(_ profile: AppProfile) {
+        settings.profiles.append(profile)
+        profileManager.reevaluate()
+    }
+
+    func deleteProfile(_ profile: AppProfile) {
+        settings.profiles.removeAll { $0.id == profile.id }
+        profileManager.reevaluate()
     }
 
     var volume: Float {
@@ -49,11 +64,18 @@ final class AppState {
 
     var isTrusted: Bool = false
 
+    // MARK: Phase 4 features
+
+    private(set) var isMeetingMuted: Bool = false
+
     // MARK: Engine + monitor
 
     let accessibilityManager = AccessibilityManager()
     let audioEngine = AudioEngine()
     private let monitor = KeyEventMonitor()
+    private let meetingMuteMonitor = MeetingMuteMonitor()
+    private let profileManager = ProfileManager()
+    private var defaultPackID: String = ""
     private var permissionWindow: NSWindow?
     private var permissionTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "com.klinkmac", category: "AppState")
@@ -77,7 +99,13 @@ final class AppState {
         let q = audioEngine.eventQueue
         monitor.onEvent = { [q] (event: KeyEvent) in _ = q.push(event) }
 
-        audioEngine.setEnabled(!settings.isPaused)
+        meetingMuteMonitor.onChanged = { [weak self] _ in self?.updateEngineEnabled() }
+        meetingMuteMonitor.start()
+
+        profileManager.onMatch = { [weak self] packID in self?.handleProfileMatch(packID) }
+        profileManager.start { [weak self] in self?.settings.profiles ?? [] }
+
+        updateEngineEnabled()
 
         if !accessibilityManager.isTrusted {
             showPermissionWindow()
@@ -163,17 +191,39 @@ final class AppState {
     // MARK: - Private
 
     private func loadPack(_ pack: InstalledPack) {
+        defaultPackID = pack.id
+        swapBank(to: pack, persistID: true)
+    }
+
+    private func loadPackForProfile(_ pack: InstalledPack) {
+        swapBank(to: pack, persistID: false)
+    }
+
+    private func swapBank(to pack: InstalledPack, persistID: Bool) {
         let url = pack.url
         let sr  = audioEngine.sampleRate
         Task.detached(priority: .userInitiated) {
-            guard let bank = try? await PackLoader.loadFromDisk(at: url, sampleRate: sr) else {
-                return
-            }
+            guard let bank = try? await PackLoader.loadFromDisk(at: url, sampleRate: sr) else { return }
             await MainActor.run {
                 self.audioEngine.setBank(bank)
                 self.activePack = pack
-                self.settings.activePackID = pack.id
+                if persistID { self.settings.activePackID = pack.id }
             }
+        }
+    }
+
+    private func updateEngineEnabled() {
+        let muted = settings.meetingMuteEnabled && meetingMuteMonitor.isMeetingActive
+        isMeetingMuted = muted
+        audioEngine.setEnabled(!settings.isPaused && !muted)
+    }
+
+    private func handleProfileMatch(_ packID: String?) {
+        if let packID, let pack = installedPacks.first(where: { $0.id == packID }) {
+            loadPackForProfile(pack)
+        } else {
+            let fallback = installedPacks.first { $0.id == defaultPackID } ?? installedPacks.first
+            if let pack = fallback { loadPackForProfile(pack) }
         }
     }
 
