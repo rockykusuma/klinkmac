@@ -3,6 +3,7 @@ import Atomics
 import AVFoundation
 import CoreAudio
 import Foundation
+import os
 
 public final class AudioEngine {
     private let engine      = AVAudioEngine()
