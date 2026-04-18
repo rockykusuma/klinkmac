@@ -1,6 +1,7 @@
 // Profiles tab: app-aware sound pack rules management UI.
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Profiles tab
 
@@ -183,17 +184,52 @@ struct AddProfileSheet: View {
     }
 
     private var appPickerList: some View {
-        ScrollView {
-            VStack(spacing: 1) {
-                ForEach(runningApps) { app in
-                    AppPickerRow(app: app) {
-                        selectedApp = app
-                        step = .pickPack
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 1) {
+                    ForEach(runningApps) { app in
+                        AppPickerRow(app: app) {
+                            selectedApp = app
+                            step = .pickPack
+                        }
                     }
                 }
+                .padding(12)
             }
-            .padding(12)
+            Divider().background(Color.klinkSurfaceHigh)
+            Button(action: browseForApp) {
+                HStack(spacing: 8) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 12))
+                    Text("Browse Applications…")
+                        .font(.system(size: 12))
+                }
+                .foregroundStyle(theme.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
         }
+    }
+
+    private func browseForApp() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose Application"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let bundle = Bundle(url: url),
+              let bid = bundle.bundleIdentifier else { return }
+        let name = (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+                ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+                ?? url.deletingPathExtension().lastPathComponent
+        let icon = NSWorkspace.shared.icon(forFile: url.path)
+        selectedApp = RunningAppInfo(bundleID: bid, name: name, icon: icon)
+        step = .pickPack
     }
 
     private var packPickerList: some View {
