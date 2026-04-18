@@ -248,9 +248,8 @@ struct AboutContent: View {
                 .frame(maxWidth: 300)
 
             HStack(spacing: 14) {
-                aboutLink("Website", url: "https://klinkmac.com")
-                aboutLink("GitHub", url: "https://github.com/")
-                aboutLink("Support", url: "mailto:support@klinkmac.com")
+                aboutLink("GitHub", url: "https://github.com/rockykusuma/klinkmac")
+                aboutLink("Issues", url: "https://github.com/rockykusuma/klinkmac/issues")
             }
 
             Spacer()

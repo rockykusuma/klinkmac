@@ -80,7 +80,19 @@ klinkmac/
 | 1 — Feel | Multiple sounds, key-up, pitch variation, 3 packs | ✅ Done |
 | 2 — Latency | Sub-10ms measured, 150 WPM stress-tested | ✅ Done |
 | 3 — Usable | Pack format, preferences UI, onboarding, settings persistence | ✅ Done |
-| 4 — USP | Differentiating pro-tier feature (TBD) | Planned |
+| 4A — Meeting mute | Auto-silence during Zoom/Meet/Teams calls | ✅ Done |
+| 4B — App-aware profiles | Different pack per foreground app | ✅ Done |
+| 4C — Output routing | Route sounds to specific audio device | ✅ Done |
+| 4D — Record your own pack | Mic recording → instant custom pack | ✅ Done |
+
+## Contributing
+
+1. Fork and clone the repo.
+2. Open `KlinkMac/KlinkMac.xcodeproj` in Xcode.
+3. In **Signing & Capabilities**, set your own Apple Developer team (required to run on device).
+4. Hit ⌘R. Grant Accessibility permission when prompted.
+
+Issues and PRs are welcome. See `ARCHITECTURE.md` before touching the audio engine — the render callback has strict no-allocation / no-lock rules.
 
 ## No sandbox
 

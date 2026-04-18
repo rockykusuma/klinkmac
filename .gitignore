@@ -4,6 +4,8 @@
 
 ## User settings
 xcuserdata/
+*.xcuserstate
+*.xcbkptlist
 
 ## Obj-C/Swift specific
 *.hmap
