@@ -70,3 +70,6 @@ fastlane/test_output
 # Build output
 build/
 DerivedData/
+
+# Internal planning docs
+ROADMAP.md
