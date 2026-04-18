@@ -23,7 +23,8 @@ struct PacksContent: View {
                             pack: pack,
                             isActive: appState.activePack?.id == pack.id,
                             onSelect: { appState.selectPack(pack) },
-                            onDelete: pack.isBundled ? nil : { appState.deletePack(pack) }
+                            onDelete: pack.isBundled ? nil : { appState.deletePack(pack) },
+                            onExport: pack.isBundled ? nil : { exportPack(pack) }
                         )
                     }
                 }
@@ -32,51 +33,84 @@ struct PacksContent: View {
 
             Divider().background(Color.klinkSurfaceHigh)
 
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(
-                        isDropTargeted ? theme.accent : Color.klinkSurfaceHigh,
-                        style: StrokeStyle(lineWidth: 1.5, dash: [5])
-                    )
-                    .frame(height: 46)
-                    .overlay {
-                        Label("Drop .klinkpack to install",
-                              systemImage: "tray.and.arrow.down")
-                            .font(.system(size: 12))
-                            .foregroundStyle(isDropTargeted
-                                             ? theme.accent : Color.klinkTextSecondary)
-                    }
-                    .dropDestination(for: URL.self) { urls, _ in
-                        guard let url = urls.first else { return false }
-                        appState.installFromURL(url)
-                        return true
-                    } isTargeted: { isDropTargeted = $0 }
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(
+                            isDropTargeted ? theme.accent : Color.klinkSurfaceHigh,
+                            style: StrokeStyle(lineWidth: 1.5, dash: [5])
+                        )
+                        .frame(height: 46)
+                        .overlay {
+                            Label("Drop .klinkpack to install",
+                                  systemImage: "tray.and.arrow.down")
+                                .font(.system(size: 12))
+                                .foregroundStyle(isDropTargeted
+                                                 ? theme.accent : Color.klinkTextSecondary)
+                        }
+                        .dropDestination(for: URL.self) { urls, _ in
+                            guard let url = urls.first else { return false }
+                            appState.installFromURL(url)
+                            return true
+                        } isTargeted: { isDropTargeted = $0 }
 
-                Button("Record Pack") {
-                    appState.showRecordPackWindow()
-                }
-                .buttonStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(theme.accent)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(theme.accent.opacity(0.1),
-                            in: RoundedRectangle(cornerRadius: 8))
-
-                Button("Open Packs Folder") {
-                    if let dir = try? PackLoader.userPacksDirectory() {
-                        NSWorkspace.shared.open(dir)
+                    Button("Record Pack") {
+                        appState.showRecordPackWindow()
                     }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(theme.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(theme.accent.opacity(0.1),
+                                in: RoundedRectangle(cornerRadius: 8))
+
+                    Button("Open Packs Folder") {
+                        if let dir = try? PackLoader.userPacksDirectory() {
+                            NSWorkspace.shared.open(dir)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(theme.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(theme.accent.opacity(0.1),
+                                in: RoundedRectangle(cornerRadius: 8))
                 }
-                .buttonStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(theme.accent)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(theme.accent.opacity(0.1),
-                            in: RoundedRectangle(cornerRadius: 8))
+
+                HStack(spacing: 5) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.klinkTextSecondary.opacity(0.7))
+                    Text(".klinkpack is a ZIP archive containing WAV sounds + manifest.json.")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.klinkTextSecondary.opacity(0.7))
+                    Text("Record your own above, or export from any user pack.")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.klinkTextSecondary.opacity(0.5))
+                    Spacer()
+                }
             }
             .padding(16)
+        }
+    }
+
+    private func exportPack(_ pack: InstalledPack) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = []
+        panel.nameFieldStringValue = "\(pack.name).klinkpack"
+        panel.message = "Export \(pack.name) as a .klinkpack file to share or back up."
+        panel.begin { [pack] response in
+            guard response == .OK, let dest = panel.url else { return }
+            Task.detached(priority: .userInitiated) {
+                let task = Process()
+                task.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+                task.arguments = ["-r", dest.path, "."]
+                task.currentDirectoryURL = pack.url
+                try? task.run()
+                task.waitUntilExit()
+            }
         }
     }
 }
@@ -86,6 +120,7 @@ struct PackGridCard: View {
     let isActive: Bool
     let onSelect: () -> Void
     let onDelete: (() -> Void)?
+    var onExport: (() -> Void)?
 
     @State private var isHovered = false
 
@@ -116,6 +151,16 @@ struct PackGridCard: View {
                             .foregroundStyle(accentColor)
                             .font(.system(size: 15))
                     }
+                    if let exp = onExport {
+                        Button(action: exp) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.klinkTextSecondary.opacity(0.8))
+                        }
+                        .buttonStyle(.plain)
+                        .opacity(isHovered ? 1 : 0)
+                        .help("Export as .klinkpack")
+                    }
                     if let del = onDelete {
                         Button(action: del) {
                             Image(systemName: "trash")
@@ -124,6 +169,7 @@ struct PackGridCard: View {
                         }
                         .buttonStyle(.plain)
                         .opacity(isHovered ? 1 : 0)
+                        .help("Delete pack")
                     }
                 }
             }
