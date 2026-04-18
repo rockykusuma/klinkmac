@@ -35,10 +35,12 @@ struct RecordPackView: View {
             appState.closeRecordPackWindow()
         }
     }
+}
 
-    // MARK: - Header
+// MARK: - Header
 
-    private var headerBar: some View {
+private extension RecordPackView {
+    var headerBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "mic.circle.fill")
                 .font(.system(size: 16, weight: .medium))
@@ -59,11 +61,11 @@ struct RecordPackView: View {
     }
 
     @ViewBuilder
-    private func autoRecordButton(recorder: PackRecorder) -> some View {
+    func autoRecordButton(recorder: PackRecorder) -> some View {
         let isAuto = recorder.state == .autoRecording
-        Button(action: {
+        Button {
             if isAuto { recorder.stopAutoRecording() } else { recorder.startAutoRecording() }
-        }) {
+        } label: {
             Label(isAuto ? "Stop Auto" : "Auto-Record",
                   systemImage: isAuto ? "stop.circle.fill" : "record.circle")
                 .font(.system(size: 11, weight: .medium))
@@ -77,10 +79,12 @@ struct RecordPackView: View {
                 .fill((isAuto ? Color.red : theme.accent).opacity(0.12))
         )
     }
+}
 
-    // MARK: - Metadata
+// MARK: - Metadata
 
-    private var metadataSection: some View {
+private extension RecordPackView {
+    var metadataSection: some View {
         HStack(spacing: 12) {
             metaField("PACK NAME", placeholder: "My Custom Pack", text: $packName)
             metaField("AUTHOR", placeholder: "Your name", text: $authorName)
@@ -88,7 +92,7 @@ struct RecordPackView: View {
         }
     }
 
-    private func metaField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
+    func metaField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
@@ -110,10 +114,12 @@ struct RecordPackView: View {
                 )
         }
     }
+}
 
-    // MARK: - Status
+// MARK: - Status
 
-    private var statusSection: some View {
+private extension RecordPackView {
+    var statusSection: some View {
         HStack(spacing: 10) {
             statusIcon
             Text(statusMessage)
@@ -137,7 +143,7 @@ struct RecordPackView: View {
     }
 
     @ViewBuilder
-    private var statusIcon: some View {
+    var statusIcon: some View {
         if let recorder = appState.packRecorder {
             switch recorder.state {
             case .idle:
@@ -159,10 +165,8 @@ struct RecordPackView: View {
         }
     }
 
-    private var statusMessage: String {
-        guard let recorder = appState.packRecorder else {
-            return "Opening recorder..."
-        }
+    var statusMessage: String {
+        guard let recorder = appState.packRecorder else { return "Opening recorder..." }
         switch recorder.state {
         case .idle:
             return recorder.recordedKeys.isEmpty
@@ -172,23 +176,23 @@ struct RecordPackView: View {
             return recorder.recordedKeys.isEmpty
                 ? "Type any key — it will be recorded automatically"
                 : "\(recorder.recordedKeys.count) key(s) recorded — keep typing to add more"
-        case .awaitingPress(_, let label):
-            return "Press [\(label)] on your physical keyboard to record..."
-        case .recording(_, let label):
-            return "Holding \(label) — release to capture up sound too"
+        case .awaitingPress(_, let lbl):
+            return "Press [\(lbl)] on your physical keyboard to record..."
+        case .recording(_, let lbl):
+            return "Holding \(lbl) — release to capture up sound too"
         }
     }
 
-    private var statusColor: Color {
+    var statusColor: Color {
         guard let recorder = appState.packRecorder else { return Color.klinkTextSecondary }
         switch recorder.state {
-        case .idle:                      return Color.klinkTextSecondary
+        case .idle:                          return Color.klinkTextSecondary
         case .autoRecording, .awaitingPress: return theme.accent
-        case .recording:                 return Color.red
+        case .recording:                     return Color.red
         }
     }
 
-    private var statusBgColor: Color {
+    var statusBgColor: Color {
         guard let recorder = appState.packRecorder else { return Color.klinkSurface }
         switch recorder.state {
         case .idle:                          return Color.klinkSurface
@@ -196,16 +200,18 @@ struct RecordPackView: View {
         case .recording:                     return Color.red.opacity(0.08)
         }
     }
+}
 
-    // MARK: - Keyboard
+// MARK: - Keyboard + Mic permission
 
+private extension RecordPackView {
     @ViewBuilder
-    private var keyboardSection: some View {
+    var keyboardSection: some View {
         if let recorder = appState.packRecorder {
             KeyboardLayoutView(
                 recorder: recorder,
-                onKeyTap: { keycode, label in
-                    recorder.startListening(forKey: keycode, label: label)
+                onKeyTap: { keycode, lbl in
+                    recorder.startListening(forKey: keycode, label: lbl)
                 },
                 onKeyPreview: { keycode, _ in
                     recorder.previewRecording(forKey: keycode)
@@ -214,9 +220,7 @@ struct RecordPackView: View {
         }
     }
 
-    // MARK: - Mic permission warning
-
-    private var micPermissionCard: some View {
+    var micPermissionCard: some View {
         HStack(spacing: 10) {
             Image(systemName: "mic.slash.fill")
                 .foregroundStyle(Color.klinkWarning)
@@ -230,7 +234,11 @@ struct RecordPackView: View {
                     .foregroundStyle(Color.klinkTextSecondary)
             }
             Spacer()
-            Button("Open Settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!) }
+            Button("Open Settings") {
+                // swiftlint:disable:next force_unwrapping
+                let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
+                NSWorkspace.shared.open(settingsURL)
+            }
             .buttonStyle(.plain)
             .font(.system(size: 11, weight: .medium))
             .foregroundStyle(Color.klinkWarning)
@@ -245,10 +253,12 @@ struct RecordPackView: View {
                 )
         )
     }
+}
 
-    // MARK: - Footer
+// MARK: - Footer + Actions
 
-    private var footerBar: some View {
+private extension RecordPackView {
+    var footerBar: some View {
         HStack(spacing: 10) {
             if let msg = errorMessage {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -288,14 +298,12 @@ struct RecordPackView: View {
         .padding(.vertical, 12)
     }
 
-    private var canSave: Bool {
+    var canSave: Bool {
         !packName.trimmingCharacters(in: .whitespaces).isEmpty
             && (appState.packRecorder?.recordedKeys.isEmpty == false)
     }
 
-    // MARK: - Actions
-
-    private func savePack() {
+    func savePack() {
         guard let recorder = appState.packRecorder else { return }
         let name = packName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { errorMessage = "Pack name is required."; return }
