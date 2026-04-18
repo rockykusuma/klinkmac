@@ -41,6 +41,10 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(meetingMuteEnabled, forKey: Key.meetingMuteEnabled) }
     }
 
+    var outputDeviceName: String = "" {
+        didSet { UserDefaults.standard.set(outputDeviceName, forKey: Key.outputDeviceName) }
+    }
+
     var profiles: [AppProfile] = [] {
         didSet {
             if let data = try? JSONEncoder().encode(profiles) {
@@ -58,6 +62,7 @@ final class SettingsStore {
         isPaused = d.bool(forKey: Key.isPaused)
         hasCompletedOnboarding = d.bool(forKey: Key.hasCompletedOnboarding)
         meetingMuteEnabled = d.bool(forKey: Key.meetingMuteEnabled)
+        outputDeviceName = d.string(forKey: Key.outputDeviceName) ?? ""
         if let data = d.data(forKey: Key.profiles),
            let decoded = try? JSONDecoder().decode([AppProfile].self, from: data) {
             profiles = decoded
@@ -112,6 +117,7 @@ final class SettingsStore {
         static let themeID               = "themeID"
         static let meetingMuteEnabled    = "meetingMuteEnabled"
         static let profiles              = "profiles"
+        static let outputDeviceName      = "outputDeviceName"
     }
 
     private let logger = Logger(subsystem: "com.klinkmac", category: "SettingsStore")

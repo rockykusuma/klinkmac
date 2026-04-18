@@ -180,6 +180,31 @@ private struct GeneralContent: View {
                     .padding(.vertical, 14)
                 }
 
+                // Output device
+                settingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label("Output Device", systemImage: "speaker.wave.2")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.klinkText)
+                        Picker("", selection: Binding(
+                            get: { appState.selectedOutputDevice?.name ?? "" },
+                            set: { name in
+                                let device = appState.outputDevices.first { $0.name == name }
+                                appState.selectOutputDevice(device)
+                            }
+                        )) {
+                            Text("System Default").tag("")
+                            ForEach(appState.outputDevices) { device in
+                                Text(device.name).tag(device.name)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(theme.accent)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                }
+
                 // Toggles
                 settingsCard {
                     VStack(spacing: 0) {

@@ -1,8 +1,16 @@
 // Observable wiring: permissions, event monitor → SPSC queue → audio engine.
 import AppKit
+import CoreAudio
 import Foundation
 import os
 import SwiftUI
+
+// MARK: - Output device model
+
+struct AudioOutputDevice: Hashable, Identifiable, Sendable {
+    let id: AudioDeviceID  // 0 = system default
+    let name: String
+}
 
 // MARK: - Pack model
 
@@ -37,6 +45,22 @@ final class AppState {
         updateEngineEnabled()
     }
 
+    func refreshOutputDevices() {
+        let devices = AudioEngine.outputDevices().map { AudioOutputDevice(id: $0.id, name: $0.name) }
+        outputDevices = devices
+        let savedName = settings.outputDeviceName
+        selectedOutputDevice = savedName.isEmpty ? nil : devices.first { $0.name == savedName }
+        if let device = selectedOutputDevice {
+            try? audioEngine.setOutputDevice(device.id)
+        }
+    }
+
+    func selectOutputDevice(_ device: AudioOutputDevice?) {
+        selectedOutputDevice = device
+        settings.outputDeviceName = device?.name ?? ""
+        try? audioEngine.setOutputDevice(device?.id)
+    }
+
     func addProfile(_ profile: AppProfile) {
         settings.profiles.append(profile)
         profileManager.reevaluate()
@@ -59,6 +83,11 @@ final class AppState {
 
     var installedPacks: [InstalledPack] = []
     var activePack: InstalledPack?
+
+    // MARK: Output routing state
+
+    var outputDevices: [AudioOutputDevice] = []
+    var selectedOutputDevice: AudioOutputDevice?
 
     // MARK: Permission state
 
@@ -98,6 +127,8 @@ final class AppState {
 
         let q = audioEngine.eventQueue
         monitor.onEvent = { [q] (event: KeyEvent) in _ = q.push(event) }
+
+        refreshOutputDevices()
 
         meetingMuteMonitor.onChanged = { [weak self] _ in self?.updateEngineEnabled() }
         meetingMuteMonitor.start()

@@ -12,6 +12,7 @@ public final class AudioEngine {
     private let bankPointer = AtomicBankPointer()
     private let enabledFlag = ManagedAtomic<Bool>(true)
     private var sourceNode: AVAudioSourceNode?
+    private var targetDeviceID: AudioDeviceID?
 
     // Updated in start() from the actual output device format.
     private(set) var sampleRate: Double = 48000
@@ -24,6 +25,7 @@ public final class AudioEngine {
     public init() {}
 
     public func start() throws {
+        applyOutputDevice(targetDeviceID)
         let outputNode = engine.outputNode
         let deviceRate = outputNode.outputFormat(forBus: 0).sampleRate
         sampleRate = deviceRate > 0 ? deviceRate : 48000
@@ -88,6 +90,34 @@ public final class AudioEngine {
 
     public func setEnabled(_ enabled: Bool) { enabledFlag.store(enabled, ordering: .releasing) }
 
+    public func setOutputDevice(_ deviceID: AudioDeviceID?) throws {
+        targetDeviceID = deviceID
+        guard engine.isRunning else { return }
+        if let node = sourceNode { engine.detach(node); sourceNode = nil }
+        engine.stop()
+        try start()
+    }
+
+    // MARK: - Output device discovery
+
+    public static func outputDevices() -> [(id: AudioDeviceID, name: String)] {
+        var propSize = UInt32(0)
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let sysObj = AudioObjectID(kAudioObjectSystemObject)
+        guard AudioObjectGetPropertyDataSize(sysObj, &addr, 0, nil, &propSize) == noErr else { return [] }
+        let count = Int(propSize) / MemoryLayout<AudioDeviceID>.size
+        var ids = [AudioDeviceID](repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(sysObj, &addr, 0, nil, &propSize, &ids) == noErr else { return [] }
+        return ids.compactMap { devID -> (AudioDeviceID, String)? in
+            guard hasOutputStream(devID), let name = deviceDisplayName(devID) else { return nil }
+            return (devID, name)
+        }
+    }
+
     // MARK: - Hardware buffer configuration
 
     private func setHardwareBufferSize(_ frames: UInt32) {
@@ -114,6 +144,55 @@ public final class AudioEngine {
         if status != noErr {
             logger.warning("Could not set hardware buffer size to \(frames) frames (OSStatus \(status))")
         }
+    }
+
+    private func applyOutputDevice(_ deviceID: AudioDeviceID?) {
+        guard let audioUnit = engine.outputNode.audioUnit else { return }
+        var target: AudioDeviceID
+        if let deviceID, deviceID != 0 {
+            target = deviceID
+        } else {
+            var defaultID = AudioDeviceID(0)
+            var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+            var addr = AudioObjectPropertyAddress(
+                mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            guard AudioObjectGetPropertyData(
+                AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &defaultID
+            ) == noErr, defaultID != 0 else { return }
+            target = defaultID
+        }
+        var dev = target
+        let status = AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_CurrentDevice,
+                                          kAudioUnitScope_Global, 0,
+                                          &dev, UInt32(MemoryLayout<AudioDeviceID>.size))
+        if status != noErr {
+            logger.warning("Could not set output device \(target): OSStatus \(status)")
+        }
+    }
+
+    private static func hasOutputStream(_ deviceID: AudioDeviceID) -> Bool {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreams,
+            mScope: kAudioObjectPropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size = UInt32(0)
+        return AudioObjectGetPropertyDataSize(deviceID, &addr, 0, nil, &size) == noErr && size > 0
+    }
+
+    private static func deviceDisplayName(_ deviceID: AudioDeviceID) -> String? {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioObjectPropertyName,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var name: Unmanaged<CFString>?
+        var size = UInt32(MemoryLayout<CFString>.size)
+        guard AudioObjectGetPropertyData(deviceID, &addr, 0, nil, &size, &name) == noErr else { return nil }
+        return name?.takeRetainedValue() as String?
     }
 
     private let logger = Logger(subsystem: "com.klinkmac", category: "AudioEngine")
