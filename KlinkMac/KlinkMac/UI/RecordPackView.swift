@@ -51,10 +51,31 @@ struct RecordPackView: View {
                 Text("\(recorder.recordedKeys.count) key(s) recorded")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.klinkTextSecondary)
+                autoRecordButton(recorder: recorder)
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
+    }
+
+    @ViewBuilder
+    private func autoRecordButton(recorder: PackRecorder) -> some View {
+        let isAuto = recorder.state == .autoRecording
+        Button(action: {
+            if isAuto { recorder.stopAutoRecording() } else { recorder.startAutoRecording() }
+        }) {
+            Label(isAuto ? "Stop Auto" : "Auto-Record",
+                  systemImage: isAuto ? "stop.circle.fill" : "record.circle")
+                .font(.system(size: 11, weight: .medium))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isAuto ? Color.red : theme.accent)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill((isAuto ? Color.red : theme.accent).opacity(0.12))
+        )
     }
 
     // MARK: - Metadata
@@ -122,6 +143,9 @@ struct RecordPackView: View {
             case .idle:
                 Image(systemName: "mic")
                     .foregroundStyle(Color.klinkTextSecondary)
+            case .autoRecording:
+                Image(systemName: "waveform.and.mic")
+                    .foregroundStyle(theme.accent)
             case .awaitingPress:
                 Image(systemName: "keyboard")
                     .foregroundStyle(theme.accent)
@@ -142,30 +166,34 @@ struct RecordPackView: View {
         switch recorder.state {
         case .idle:
             return recorder.recordedKeys.isEmpty
-                ? "Click any key above to record it"
+                ? "Click any key above to record it, or use Auto-Record"
                 : "\(recorder.recordedKeys.count) key(s) recorded — click to re-record, or save"
+        case .autoRecording:
+            return recorder.recordedKeys.isEmpty
+                ? "Type any key — it will be recorded automatically"
+                : "\(recorder.recordedKeys.count) key(s) recorded — keep typing to add more"
         case .awaitingPress(_, let label):
             return "Press [\(label)] on your physical keyboard to record..."
         case .recording(_, let label):
-            return "Recording \(label) — release when done (max 380 ms)"
+            return "Holding \(label) — release to capture up sound too"
         }
     }
 
     private var statusColor: Color {
         guard let recorder = appState.packRecorder else { return Color.klinkTextSecondary }
         switch recorder.state {
-        case .idle:      return Color.klinkTextSecondary
-        case .awaitingPress: return theme.accent
-        case .recording: return Color.red
+        case .idle:                      return Color.klinkTextSecondary
+        case .autoRecording, .awaitingPress: return theme.accent
+        case .recording:                 return Color.red
         }
     }
 
     private var statusBgColor: Color {
         guard let recorder = appState.packRecorder else { return Color.klinkSurface }
         switch recorder.state {
-        case .idle:          return Color.klinkSurface
-        case .awaitingPress: return theme.accent.opacity(0.08)
-        case .recording:     return Color.red.opacity(0.08)
+        case .idle:                          return Color.klinkSurface
+        case .autoRecording, .awaitingPress: return theme.accent.opacity(0.08)
+        case .recording:                     return Color.red.opacity(0.08)
         }
     }
 

@@ -1,4 +1,4 @@
-// Microphone recorder for building custom sound packs one key at a time.
+// Microphone recorder for building custom sound packs — per-key and auto-record modes.
 import AppKit
 import AVFoundation
 import Foundation
@@ -11,6 +11,7 @@ final class PackRecorder {
 
     enum RecordState: Equatable {
         case idle
+        case autoRecording                              // typing freely — any key captured
         case awaitingPress(keycode: UInt32, label: String)
         case recording(keycode: UInt32, label: String)
     }
@@ -31,6 +32,10 @@ final class PackRecorder {
     private var localMonitor: Any?
     private var globalMonitor: Any?
     private var previewPlayer: AVAudioPlayer?
+    private var upRecordings: [UInt32: URL] = [:]
+    private var splitIndex: Int = 0
+    private var isAutoMode = false
+    private static let modifierKeycodes: Set<UInt32> = [54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
     private let tempDir: URL
     private let logger = Logger(subsystem: "com.klinkmac", category: "PackRecorder")
 
@@ -43,27 +48,44 @@ final class PackRecorder {
     // MARK: - Public API
 
     func startListening(forKey keycode: UInt32, label: String) {
-        let status = AVCaptureDevice.authorizationStatus(for: .audio)
-        switch status {
-        case .authorized:
-            break
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+        let s = AVCaptureDevice.authorizationStatus(for: .audio)
+        if s == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] g in
                 Task { @MainActor [weak self] in
-                    self?.micPermissionDenied = !granted
-                    if granted { self?.startListening(forKey: keycode, label: label) }
+                    self?.micPermissionDenied = !g
+                    if g { self?.startListening(forKey: keycode, label: label) }
                 }
             }
             return
-        default:
-            micPermissionDenied = true
-            return
         }
-
+        guard s == .authorized else { micPermissionDenied = true; return }
+        isAutoMode = false
         if case .recording = state { cancelCurrentRecording() }
         tailTask?.cancel(); tailTask = nil
         startKeyMonitors()
         state = .awaitingPress(keycode: keycode, label: label)
+    }
+
+    func startAutoRecording() {
+        let s = AVCaptureDevice.authorizationStatus(for: .audio)
+        if s == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] g in
+                Task { @MainActor [weak self] in
+                    self?.micPermissionDenied = !g
+                    if g { self?.startAutoRecording() }
+                }
+            }
+            return
+        }
+        guard s == .authorized else { micPermissionDenied = true; return }
+        if case .recording = state { cancelCurrentRecording() }
+        isAutoMode = true; startKeyMonitors(); state = .autoRecording
+    }
+
+    func stopAutoRecording() {
+        isAutoMode = false; tailTask?.cancel(); tailTask = nil
+        maxDurationTask?.cancel(); maxDurationTask = nil
+        cancelCurrentRecording(); stopKeyMonitors(); state = .idle
     }
 
     func previewRecording(forKey keycode: UInt32) {
@@ -72,16 +94,15 @@ final class PackRecorder {
     }
 
     func cancelListening() {
-        tailTask?.cancel(); tailTask = nil
+        isAutoMode = false; tailTask?.cancel(); tailTask = nil
         maxDurationTask?.cancel(); maxDurationTask = nil
-        cancelCurrentRecording()
-        stopKeyMonitors()
-        state = .idle
+        cancelCurrentRecording(); stopKeyMonitors(); state = .idle
     }
 
     func deleteRecording(forKey keycode: UInt32) {
         if let url = recordings[keycode] { try? FileManager.default.removeItem(at: url) }
-        recordings.removeValue(forKey: keycode)
+        if let url = upRecordings[keycode] { try? FileManager.default.removeItem(at: url) }
+        recordings.removeValue(forKey: keycode); upRecordings.removeValue(forKey: keycode)
         recordedKeys.remove(keycode)
     }
 
@@ -99,22 +120,20 @@ final class PackRecorder {
         let defaultKC = recordings.keys.contains(spaceKeycode) ? spaceKeycode : recordings.keys.min()!
         let defaultFile = "key_\(defaultKC).wav"
         try fm.copyItem(at: recordings[defaultKC]!, to: destDir.appendingPathComponent(defaultFile))
+        var defaultEntry: [String: String] = ["down": defaultFile]
+        if let f = try copyUpFile(kc: defaultKC, to: destDir, fm: fm) { defaultEntry["up"] = f }
 
         var keysDict: [String: [String: String]] = [:]
         for (kc, url) in recordings where kc != defaultKC {
             let fname = "key_\(kc).wav"
             try fm.copyItem(at: url, to: destDir.appendingPathComponent(fname))
-            keysDict["\(kc)"] = ["down": fname]
+            var entry: [String: String] = ["down": fname]
+            if let f = try copyUpFile(kc: kc, to: destDir, fm: fm) { entry["up"] = f }
+            keysDict["\(kc)"] = entry
         }
 
-        var manifest: [String: Any] = [
-            "formatVersion": 1,
-            "id": packID,
-            "name": name,
-            "author": author.isEmpty ? "Me" : author,
-            "version": "1.0.0",
-            "defaults": ["down": defaultFile]
-        ]
+        var manifest: [String: Any] = ["formatVersion": 1, "id": packID, "name": name,
+            "author": author.isEmpty ? "Me" : author, "version": "1.0.0", "defaults": defaultEntry]
         if !keysDict.isEmpty { manifest["keys"] = keysDict }
 
         let json = try JSONSerialization.data(withJSONObject: manifest,
@@ -126,15 +145,14 @@ final class PackRecorder {
 
     /// Must be called before releasing the recorder (stops monitors, cleans temp files).
     func cleanup() {
-        tailTask?.cancel(); tailTask = nil
+        isAutoMode = false; tailTask?.cancel(); tailTask = nil
         maxDurationTask?.cancel(); maxDurationTask = nil
-        cancelCurrentRecording()
-        stopKeyMonitors()
+        cancelCurrentRecording(); stopKeyMonitors()
         previewPlayer?.stop(); previewPlayer = nil
         recordings.values.forEach { try? FileManager.default.removeItem(at: $0) }
-        recordings = [:]
-        recordedKeys = []
-        state = .idle
+        upRecordings.values.forEach { try? FileManager.default.removeItem(at: $0) }
+        recordings = [:]; upRecordings = [:]
+        recordedKeys = []; state = .idle
         try? FileManager.default.removeItem(at: tempDir)
     }
 
@@ -165,8 +183,11 @@ final class PackRecorder {
         let kc = UInt32(event.keyCode)
         let isDown = event.type == .keyDown
         switch state {
-        case .awaitingPress(let expected, let label):
-            if kc == expected && isDown { beginRecording(keycode: expected, label: label) }
+        case .autoRecording:
+            guard !Self.modifierKeycodes.contains(kc), isDown else { break }
+            beginRecording(keycode: kc, label: label(for: kc))
+        case .awaitingPress(let expected, let lbl):
+            if kc == expected && isDown { beginRecording(keycode: expected, label: lbl) }
         case .recording(let expected, _):
             if kc == expected && !isDown { scheduleStop(keycode: expected) }
         case .idle:
@@ -207,29 +228,21 @@ final class PackRecorder {
             }
         }
 
-        do {
-            try recEngine.start()
-        } catch {
+        do { try recEngine.start() } catch {
             logger.error("RecordEngine start failed: \(error.localizedDescription)")
-            cancelCurrentRecording()
-            stopKeyMonitors()
-            state = .idle
-            return
+            cancelCurrentRecording(); stopKeyMonitors(); state = .idle; return
         }
 
-        // Auto-stop after 380ms so total recording stays under 500ms limit
         maxDurationTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(380))
-            guard !Task.isCancelled else { return }
-            if case .recording(let kc, _) = self?.state, kc == keycode {
-                self?.scheduleStop(keycode: keycode)
-            }
+            guard !Task.isCancelled, case .recording(let kc, _) = self?.state, kc == keycode else { return }
+            self?.scheduleStop(keycode: keycode)
         }
     }
 
     private func scheduleStop(keycode: UInt32) {
         guard case .recording(let kc, _) = state, kc == keycode, tailTask == nil else { return }
-        maxDurationTask?.cancel(); maxDurationTask = nil
+        maxDurationTask?.cancel(); maxDurationTask = nil; splitIndex = accumSamples.count
         tailTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(100))
             guard !Task.isCancelled else { return }
@@ -239,58 +252,69 @@ final class PackRecorder {
 
     private func finalizeRecording(keycode: UInt32) {
         tailTask = nil
-        let samples = accumSamples
+        let all = accumSamples
+        let split = min(splitIndex, all.count)
         isCapturing = false
-        if recEngine.isRunning {
-            recEngine.inputNode.removeTap(onBus: 0)
-            recEngine.stop()
-        }
+        if recEngine.isRunning { recEngine.inputNode.removeTap(onBus: 0); recEngine.stop() }
         accumSamples = []
-        stopKeyMonitors()
+        let next: RecordState = isAutoMode ? .autoRecording : .idle
+        if !isAutoMode { stopKeyMonitors() }
+        guard !all.isEmpty else { state = next; return }
 
-        guard !samples.isEmpty else { state = .idle; return }
-
-        let monoFmt = AVAudioFormat(standardFormatWithSampleRate: tapSampleRate, channels: 1)!
-        let frameCount = AVAudioFrameCount(samples.count)
-        guard let buf = AVAudioPCMBuffer(pcmFormat: monoFmt, frameCapacity: frameCount),
-              let dst = buf.floatChannelData else { state = .idle; return }
-        buf.frameLength = frameCount
-        for i in 0..<samples.count { dst[0][i] = samples[i] }
-
-        normalize(buffer: buf, targetPeak: 0.5)
-
-        let wavSettings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatLinearPCM,
-            AVSampleRateKey: tapSampleRate,
-            AVNumberOfChannelsKey: 1,
-            AVLinearPCMBitDepthKey: 16,
-            AVLinearPCMIsFloatKey: false,
-            AVLinearPCMIsBigEndianKey: false
-        ]
-        let fileURL = tempDir.appendingPathComponent("\(keycode).wav")
+        let sr = tapSampleRate
+        let downURL = tempDir.appendingPathComponent("\(keycode).wav")
+        let upURL   = tempDir.appendingPathComponent("\(keycode)_up.wav")
         do {
             if let old = recordings[keycode] { try? FileManager.default.removeItem(at: old) }
-            let file = try AVAudioFile(forWriting: fileURL, settings: wavSettings)
-            try file.write(from: buf)
-            recordings[keycode] = fileURL
+            if let old = upRecordings[keycode] { try? FileManager.default.removeItem(at: old) }
+            try writeWAV(samples: Array(all[..<split]), sampleRate: sr, to: downURL)
+            recordings[keycode] = downURL
+            if split < all.count {
+                try writeWAV(samples: Array(all[split...]), sampleRate: sr, to: upURL)
+                upRecordings[keycode] = upURL
+            }
             recordedKeys.insert(keycode)
-            logger.info("Recorded key \(keycode): \(samples.count) samples @ \(self.tapSampleRate)Hz")
+            logger.info("Recorded key \(keycode): \(split) down + \(all.count - split) up samples")
         } catch {
             logger.error("WAV write failed for key \(keycode): \(error.localizedDescription)")
         }
-        state = .idle
+        state = next
     }
 
     // MARK: - Helpers
 
-    private func normalize(buffer: AVAudioPCMBuffer, targetPeak: Float) {
-        guard let data = buffer.floatChannelData else { return }
-        let n = Int(buffer.frameLength)
-        var peak: Float = 0
-        for i in 0..<n { peak = max(peak, abs(data[0][i])) }
-        guard peak > 1e-6 else { return }
-        let gain = targetPeak / peak
-        for i in 0..<n { data[0][i] *= gain }
+    private func writeWAV(samples: [Float], sampleRate sr: Double, to url: URL) throws {
+        guard !samples.isEmpty,
+              let buf = AVAudioPCMBuffer(pcmFormat: AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!,
+                                        frameCapacity: AVAudioFrameCount(samples.count)),
+              let dst = buf.floatChannelData else { return }
+        buf.frameLength = AVAudioFrameCount(samples.count)
+        for i in 0..<samples.count { dst[0][i] = samples[i] }
+        let n = Int(buf.frameLength); var peak: Float = 0
+        for i in 0..<n { peak = max(peak, abs(dst[0][i])) }
+        if peak > 1e-6 { let g = 0.5 / peak; for i in 0..<n { dst[0][i] *= g } }
+        let s: [String: Any] = [AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: sr,
+                                 AVNumberOfChannelsKey: 1, AVLinearPCMBitDepthKey: 16,
+                                 AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false]
+        try AVAudioFile(forWriting: url, settings: s).write(from: buf)
+    }
+
+    @discardableResult
+    private func copyUpFile(kc: UInt32, to dir: URL, fm: FileManager) throws -> String? {
+        guard let u = upRecordings[kc] else { return nil }
+        let f = "key_\(kc)_up.wav"
+        try fm.copyItem(at: u, to: dir.appendingPathComponent(f)); return f
+    }
+
+    private func label(for kc: UInt32) -> String {
+        let m: [UInt32: String] = [
+            0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X", 8: "C", 9: "V", 11: "B",
+            12: "Q", 13: "W", 14: "E", 15: "R", 16: "Y", 17: "T", 18: "1", 19: "2", 20: "3", 21: "4",
+            22: "6", 23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0", 30: "]", 31: "O",
+            32: "U", 33: "[", 34: "I", 35: "P", 36: "↩", 37: "L", 38: "J", 39: "'", 40: "K", 41: ";",
+            42: "\\", 43: ",", 44: "/", 45: "N", 46: "M", 47: ".", 48: "⇥", 49: "Space", 50: "`", 51: "⌫"
+        ]
+        return m[kc] ?? "#\(kc)"
     }
 
     private func sanitizeID(_ name: String) -> String {
