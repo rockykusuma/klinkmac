@@ -5,18 +5,24 @@ import SwiftUI
 struct KlinkMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var appState = AppState()
+    // Mirror themeID with @AppStorage so body re-evaluates on change.
+    @AppStorage("themeID") private var themeID = "jade"
 
     var body: some Scene {
+        let theme = KlinkTheme.find(id: themeID)
+
         MenuBarExtra {
             MenuBarView(appState: appState)
                 .task { delegate.appState = appState }
+                .environment(\.klinkTheme, theme)
         } label: {
             MenuBarIcon(appState: appState)
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
 
         Settings {
             PreferencesView(appState: appState)
+                .environment(\.klinkTheme, theme)
         }
     }
 }
