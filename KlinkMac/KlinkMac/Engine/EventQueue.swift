@@ -60,5 +60,13 @@ public final class EventQueue: @unchecked Sendable {
         return event
     }
 
+    /// Reset thread assertions after audio session restart (engine stop/start changes I/O thread).
+    public func resetThreadAssertions() {
+#if DEBUG
+        _pushThread = nil
+        _popThread  = nil
+#endif
+    }
+
     deinit { buffer.deallocate() }
 }

@@ -25,6 +25,7 @@ public final class AudioEngine {
     public init() {}
 
     public func start() throws {
+        eventQueue.resetThreadAssertions()
         applyOutputDevice(targetDeviceID)
         let outputNode = engine.outputNode
         let deviceRate = outputNode.outputFormat(forBus: 0).sampleRate
