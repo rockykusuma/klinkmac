@@ -53,6 +53,19 @@ final class SettingsStore {
         }
     }
 
+    var visualizerEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(visualizerEnabled, forKey: Key.visualizerEnabled) }
+    }
+
+    /// One of: "tl", "tr", "bl", "br"
+    var visualizerPosition: String = "br" {
+        didSet { UserDefaults.standard.set(visualizerPosition, forKey: Key.visualizerPosition) }
+    }
+
+    var visualizerOpacity: Double = 0.95 {
+        didSet { UserDefaults.standard.set(visualizerOpacity, forKey: Key.visualizerOpacity) }
+    }
+
     // MARK: - Init
 
     init() {
@@ -67,6 +80,10 @@ final class SettingsStore {
            let decoded = try? JSONDecoder().decode([AppProfile].self, from: data) {
             profiles = decoded
         }
+        visualizerEnabled = d.bool(forKey: Key.visualizerEnabled)
+        visualizerPosition = d.string(forKey: Key.visualizerPosition) ?? "br"
+        let storedOpacity = d.double(forKey: Key.visualizerOpacity)
+        visualizerOpacity = storedOpacity > 0 ? storedOpacity : 0.95
 
         // Reflect actual SMAppService state rather than a possibly stale stored bool.
         launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -118,6 +135,9 @@ final class SettingsStore {
         static let meetingMuteEnabled    = "meetingMuteEnabled"
         static let profiles              = "profiles"
         static let outputDeviceName      = "outputDeviceName"
+        static let visualizerEnabled     = "visualizerEnabled"
+        static let visualizerPosition    = "visualizerPosition"
+        static let visualizerOpacity     = "visualizerOpacity"
     }
 
     private let logger = Logger(subsystem: "com.klinkmac", category: "SettingsStore")

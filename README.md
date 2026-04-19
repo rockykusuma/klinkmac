@@ -19,6 +19,7 @@ KlinkMac makes any Mac keyboard sound like a premium mechanical keyboard. Each k
 - **App-aware profiles** — different pack per foreground app (e.g. silent in Slack, clicky in Xcode)
 - **Output routing** — route sounds to any audio device (headphones only, virtual loopback, etc.)
 - **Export packs** — export any user-recorded pack as a shareable `.klinkpack` file
+- **Typing visualizer overlay** — floating click-through keyboard that lights up as you type (streamer / tutorial use case)
 - **Launch at login** — runs silently in the menu bar
 
 ## Requirements
@@ -93,14 +94,17 @@ klinkmac/
 │       ├── Settings/
 │       │   └── SettingsStore.swift     UserDefaults-backed persistence
 │       ├── UI/
-│       │   ├── DesignSystem.swift      color tokens, shared components
-│       │   ├── MenuBarView.swift       menu bar panel
-│       │   ├── OnboardingView.swift    first-launch flow
-│       │   ├── PreferencesView.swift   preferences window shell
-│       │   ├── PreferencesPackViews.swift  pack grid, export, drop zone
-│       │   ├── PreferencesProfileViews.swift  app profile rules UI
-│       │   ├── KeyboardLayoutView.swift    on-screen keyboard for recording
-│       │   └── RecordPackView.swift    record-your-own-pack UI
+│       │   ├── DesignSystem.swift           color tokens, shared components
+│       │   ├── MenuBarView.swift            menu bar panel
+│       │   ├── OnboardingView.swift         first-launch flow
+│       │   ├── PreferencesView.swift        preferences window shell
+│       │   ├── PreferencesPackViews.swift   pack grid, export, drop zone
+│       │   ├── PreferencesProfileViews.swift app profile rules UI
+│       │   ├── PreferencesOverlayView.swift visualizer overlay settings
+│       │   ├── KeyboardLayoutView.swift     on-screen keyboard for recording
+│       │   ├── RecordPackView.swift         record-your-own-pack UI
+│       │   ├── VisualizerView.swift         floating keyboard visualizer
+│       │   └── VisualizerWindow.swift       borderless click-through NSWindow
 │       └── Resources/Packs/            15 bundled sound packs
 ├── KlinkMacTests/                      unit tests
 ├── release.sh                          sign + notarize + DMG script
@@ -121,6 +125,7 @@ klinkmac/
 | 4B — App-aware profiles | Per-app pack switching | ✅ |
 | 4C — Output routing | Route to specific audio device | ✅ |
 | 4D — Record your own pack | Mic recording → instant custom pack | ✅ |
+| 4E — Typing visualizer overlay | Floating keyboard that lights up as you type | ✅ |
 
 ## Contributing
 
