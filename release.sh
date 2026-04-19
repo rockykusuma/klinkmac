@@ -71,6 +71,15 @@ echo "  Signature verified."
 
 echo "==> Creating $DMG_NAME"
 TMP_DMG="$BUILD_DIR/${APP_NAME}-unsigned.dmg"
+
+# Stage only the .app into an isolated dir so create-dmg doesn't pick up
+# build intermediates (SPM .o files, .swiftmodule, .dSYM) that live alongside
+# the .app in Release/ and fail notarization as "unsigned binaries".
+STAGING_DIR="$BUILD_DIR/dmg-staging"
+rm -rf "$STAGING_DIR"
+mkdir -p "$STAGING_DIR"
+cp -R "$APP_PATH" "$STAGING_DIR/"
+
 if command -v create-dmg &>/dev/null; then
   create-dmg \
     --volname "$APP_NAME" \
@@ -81,11 +90,11 @@ if command -v create-dmg &>/dev/null; then
     --hide-extension "$APP_NAME.app" \
     --app-drop-link 400 185 \
     "$TMP_DMG" \
-    "$BUILD_DIR/Release/"
+    "$STAGING_DIR"
 else
   # Fallback: plain hdiutil DMG (no pretty background)
   hdiutil create -volname "$APP_NAME" \
-    -srcfolder "$BUILD_DIR/Release/$APP_NAME.app" \
+    -srcfolder "$STAGING_DIR/$APP_NAME.app" \
     -ov -format UDZO \
     "$TMP_DMG"
 fi
