@@ -24,9 +24,13 @@ public final class VoiceAllocator {
     // Explicitly opt out — VoiceAllocator is audio-thread-only; its cleanup is trivially thread-safe.
     nonisolated deinit {}
 
-    public func allocate(samplePtr: UnsafePointer<Float>, frames: Int) {
+    public func allocate(samplePtr: UnsafePointer<Float>,
+                         frames: Int,
+                         gain: Float = 1.0,
+                         pitchBias: Float = 1.0) {
         rngState = rngState &* 6364136223846793005 &+ 1442695040888963407
-        let pitchRatio = 1.0 + (Float(UInt32(rngState >> 32)) / Float(UInt32.max)) * 0.05 - 0.025
+        let jitter = 1.0 + (Float(UInt32(rngState >> 32)) / Float(UInt32.max)) * 0.05 - 0.025
+        let pitchRatio = jitter * pitchBias
 
         var idx = voices.firstIndex { !$0.active }
         if idx == nil {
@@ -38,7 +42,7 @@ public final class VoiceAllocator {
         }
         guard let i = idx else { return }
         voices[i] = Voice(samplePtr: samplePtr, frameCount: frames,
-                          position: 0, pitchRatio: pitchRatio, gain: 1.0, active: true)
+                          position: 0, pitchRatio: pitchRatio, gain: gain, active: true)
     }
 
     public func render(into output: UnsafeMutableBufferPointer<Float>, frameCount: Int) {

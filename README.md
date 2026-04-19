@@ -14,6 +14,7 @@ KlinkMac makes any Mac keyboard sound like a premium mechanical keyboard. Each k
 ## Features
 
 - **15 bundled sound packs** — Cherry MX Blue/Brown/Red/Black (ABS + PBT variants), NK Cream, Topre, and more
+- **Velocity-aware dynamics** — sound intensity adapts to your typing rhythm. Fast typing → lighter, tighter clicks; slow deliberate typing → heavier, fuller thocks. Feels alive in a way sample-based apps can't match.
 - **Custom packs** — drag a `.klinkpack` file to install, or record your own from mic
 - **Meeting mute** — auto-silences during Zoom, Meet, Teams, Discord, FaceTime calls
 - **App-aware profiles** — different pack per foreground app (e.g. silent in Slack, clicky in Xcode)
@@ -126,6 +127,7 @@ klinkmac/
 | 4C — Output routing | Route to specific audio device | ✅ |
 | 4D — Record your own pack | Mic recording → instant custom pack | ✅ |
 | 4E — Typing visualizer overlay | Floating keyboard that lights up as you type | ✅ |
+| 4F — Velocity-aware dynamics | Sound intensity adapts to typing rhythm | ✅ |
 
 ## Contributing
 

@@ -57,6 +57,10 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(visualizerEnabled, forKey: Key.visualizerEnabled) }
     }
 
+    var velocityDynamicsEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(velocityDynamicsEnabled, forKey: Key.velocityDynamicsEnabled) }
+    }
+
     /// One of: "tl", "tr", "bl", "br"
     var visualizerPosition: String = "br" {
         didSet { UserDefaults.standard.set(visualizerPosition, forKey: Key.visualizerPosition) }
@@ -84,6 +88,8 @@ final class SettingsStore {
         visualizerPosition = d.string(forKey: Key.visualizerPosition) ?? "br"
         let storedOpacity = d.double(forKey: Key.visualizerOpacity)
         visualizerOpacity = storedOpacity > 0 ? storedOpacity : 0.95
+        // Default velocity dynamics to true on first launch, honor stored value afterwards.
+        velocityDynamicsEnabled = d.object(forKey: Key.velocityDynamicsEnabled) as? Bool ?? true
 
         // Reflect actual SMAppService state rather than a possibly stale stored bool.
         launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -138,6 +144,7 @@ final class SettingsStore {
         static let visualizerEnabled     = "visualizerEnabled"
         static let visualizerPosition    = "visualizerPosition"
         static let visualizerOpacity     = "visualizerOpacity"
+        static let velocityDynamicsEnabled = "velocityDynamicsEnabled"
     }
 
     private let logger = Logger(subsystem: "com.klinkmac", category: "SettingsStore")
