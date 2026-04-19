@@ -227,6 +227,13 @@ private struct GeneralContent: View {
                             ))
                         }
                         Divider().background(Color.klinkSurfaceHigh).padding(.leading, 46)
+                        settingsRow(label: "Velocity-aware dynamics", icon: "waveform.path.ecg") {
+                            KlinkToggle(isOn: Binding(
+                                get: { appState.settings.velocityDynamicsEnabled },
+                                set: { appState.setVelocityDynamicsEnabled($0) }
+                            ))
+                        }
+                        Divider().background(Color.klinkSurfaceHigh).padding(.leading, 46)
                         settingsRow(label: "Launch at login", icon: "arrow.up.circle.fill") {
                             KlinkToggle(isOn: Binding(
                                 get: { appState.settings.launchAtLogin },

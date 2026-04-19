@@ -5,12 +5,50 @@ import CoreAudio
 import Foundation
 import os
 
+/// Audio-thread-private state for velocity-aware sound modulation.
+/// Heap-allocated once at engine start, mutated only from the render callback.
+struct VelocityState {
+    var avgIKI: Double
+    var lastDownTimestamp: UInt64
+}
+
+/// Updates velocity state from a key-down event and returns (gain, pitchBias) for sample allocation.
+/// Called only from the audio render thread — no allocations, no locks, no ARC.
+@inline(__always)
+func velocityModulation(for event: KeyEvent,
+                        state: UnsafeMutablePointer<VelocityState>,
+                        machToSec: Double) -> (gain: Float, pitchBias: Float) {
+    // EWMA of inter-key-interval in seconds. alpha 0.35 responds in ~3 keys.
+    if state.pointee.lastDownTimestamp != 0 {
+        let delta = event.timestamp &- state.pointee.lastDownTimestamp
+        let iki = Double(delta) * machToSec
+        state.pointee.avgIKI = 0.35 * iki + 0.65 * state.pointee.avgIKI
+    }
+    state.pointee.lastDownTimestamp = event.timestamp
+
+    // Map IKI → intensity ∈ [0, 1].
+    //   0.08s (≈150 WPM) → 0.0 (fast, light)
+    //   0.40s (≈30 WPM)  → 1.0 (slow, heavy)
+    let raw = (state.pointee.avgIKI - 0.08) / 0.32
+    let intensity = Float(min(1.0, max(0.0, raw)))
+    // gain range 0.55–1.0 (~5dB swing), pitch range 0.94–1.06 (~one semitone).
+    return (gain: 0.55 + 0.45 * intensity,
+            pitchBias: 1.06 - 0.12 * intensity)
+}
+
 public final class AudioEngine {
-    private let engine      = AVAudioEngine()
-    private let allocator   = VoiceAllocator(poolSize: 24)
-    let eventQueue          = EventQueue(capacity: 256)
-    private let bankPointer = AtomicBankPointer()
-    private let enabledFlag = ManagedAtomic<Bool>(true)
+    private let engine       = AVAudioEngine()
+    private let allocator    = VoiceAllocator(poolSize: 24)
+    let eventQueue           = EventQueue(capacity: 256)
+    private let bankPointer  = AtomicBankPointer()
+    private let enabledFlag  = ManagedAtomic<Bool>(true)
+    private let velocityFlag = ManagedAtomic<Bool>(true)
+    // Audio-thread-private mutable state. Allocated once, reused across engine restarts.
+    private let velocityState: UnsafeMutablePointer<VelocityState> = {
+        let p = UnsafeMutablePointer<VelocityState>.allocate(capacity: 1)
+        p.initialize(to: VelocityState(avgIKI: 0.25, lastDownTimestamp: 0))
+        return p
+    }()
     private var sourceNode: AVAudioSourceNode?
     private var targetDeviceID: AudioDeviceID?
     private var configChangeObserver: Any?
@@ -25,6 +63,16 @@ public final class AudioEngine {
 
     public init() {}
 
+    deinit {
+        velocityState.deinitialize(count: 1)
+        velocityState.deallocate()
+    }
+
+    public func setVelocityDynamics(_ enabled: Bool) {
+        velocityFlag.store(enabled, ordering: .releasing)
+    }
+
+    // swiftlint:disable:next function_body_length
     public func start() throws {
         eventQueue.resetThreadAssertions()
 
@@ -48,10 +96,17 @@ public final class AudioEngine {
 
         let fmt = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
 
-        let alloc   = allocator
-        let q       = eventQueue
-        let bp      = bankPointer
-        let enabled = enabledFlag
+        let alloc     = allocator
+        let q         = eventQueue
+        let bp        = bankPointer
+        let enabled   = enabledFlag
+        let velocity  = velocityFlag
+
+        // Velocity-aware state pointer — owned by the engine instance, reused across restarts.
+        // Reset at each start so IKI history doesn't carry over a paused/resumed session.
+        let state = velocityState
+        state.pointee = VelocityState(avgIKI: 0.25, lastDownTimestamp: 0)
+        let machToSec = Self.machTimebaseToSeconds()
 
         let node = AVAudioSourceNode(format: fmt) { _, _, frameCount, audioBufferList -> OSStatus in
             let abl   = UnsafeMutableAudioBufferListPointer(audioBufferList)
@@ -68,14 +123,19 @@ public final class AudioEngine {
             // _withUnsafeGuaranteedRef: access SampleBank without ARC retain/release.
             // AtomicBankPointer holds the +1 retain; deferred release waits 5s after swap.
             bankRef._withUnsafeGuaranteedRef { bank in
-                let isEnabled = enabled.load(ordering: .relaxed)
+                let isEnabled     = enabled.load(ordering: .relaxed)
+                let velocityOn    = velocity.load(ordering: .relaxed)
 
                 // Drain event queue into voice allocator.
                 while let event = q.pop() {
                     guard isEnabled else { continue }
                     let s = bank.sample(for: event.keycode)
                     if event.isDown {
-                        alloc.allocate(samplePtr: s.downFrames, frames: s.downFrameCount)
+                        let mod = velocityOn
+                            ? velocityModulation(for: event, state: state, machToSec: machToSec)
+                            : (gain: Float(1.0), pitchBias: Float(1.0))
+                        alloc.allocate(samplePtr: s.downFrames, frames: s.downFrameCount,
+                                       gain: mod.gain, pitchBias: mod.pitchBias)
                     } else if let up = s.upFrames, s.upFrameCount > 0 {
                         alloc.allocate(samplePtr: up, frames: s.upFrameCount)
                     }
@@ -101,6 +161,10 @@ public final class AudioEngine {
     }
 
     public func stop() { engine.stop() }
+
+    /// CGEvent.timestamp is in nanoseconds since boot, NOT mach_absolute_time ticks.
+    /// Using mach_timebase (125/3 on Apple Silicon) over-scales by ~42×. Always divide by 1e9.
+    private static func machTimebaseToSeconds() -> Double { 1e-9 }
 
     public func setBank(_ bank: SampleBank) { bankPointer.store(bank) }
 

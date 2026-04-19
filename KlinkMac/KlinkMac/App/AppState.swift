@@ -44,6 +44,11 @@ final class AppState {
         updateEngineEnabled()
     }
 
+    func setVelocityDynamicsEnabled(_ enabled: Bool) {
+        settings.velocityDynamicsEnabled = enabled
+        audioEngine.setVelocityDynamics(enabled)
+    }
+
     func refreshOutputDevices() {
         let devices = AudioEngine.outputDevices().map { AudioOutputDevice(id: $0.id, name: $0.name) }
         outputDevices = devices
@@ -124,6 +129,7 @@ final class AppState {
 
     init() {
         audioEngine.volume = settings.volume
+        audioEngine.setVelocityDynamics(settings.velocityDynamicsEnabled)
         try? audioEngine.start()
 
         discoverPacks()
