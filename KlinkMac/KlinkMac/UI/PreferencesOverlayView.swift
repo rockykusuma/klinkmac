@@ -22,7 +22,7 @@ struct OverlayContent: View {
 
     private var enableCard: some View {
         HStack(spacing: 12) {
-            Image(systemName: "keyboard.badge.waveform")
+            Image(systemName: "rectangle.on.rectangle.angled")
                 .font(.system(size: 15))
                 .foregroundStyle(theme.accent)
                 .frame(width: 18)

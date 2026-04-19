@@ -24,7 +24,7 @@ struct PreferencesView: View {
             case .general:  "gearshape.fill"
             case .packs:    "music.note.list"
             case .profiles: "app.connected.to.app.below.fill"
-            case .overlay:  "keyboard.badge.waveform"
+            case .overlay:  "rectangle.on.rectangle.angled"
             case .about:    "info.circle.fill"
             }
         }
