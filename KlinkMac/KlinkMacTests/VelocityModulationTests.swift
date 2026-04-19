@@ -32,7 +32,7 @@ final class VelocityModulationTests: XCTestCase {
                                      machToSec: machToSec)
 
         XCTAssertEqual(mod.gain, 1.0, accuracy: 0.01)
-        XCTAssertEqual(mod.pitchBias, 0.97, accuracy: 0.01)
+        XCTAssertEqual(mod.pitchBias, 0.94, accuracy: 0.01)
     }
 
     func testFastTypingProducesReducedGainAndHigherPitch() {
@@ -44,8 +44,8 @@ final class VelocityModulationTests: XCTestCase {
                                      state: state,
                                      machToSec: machToSec)
 
-        XCTAssertEqual(mod.gain, 0.72, accuracy: 0.01)
-        XCTAssertEqual(mod.pitchBias, 1.03, accuracy: 0.01)
+        XCTAssertEqual(mod.gain, 0.55, accuracy: 0.01)
+        XCTAssertEqual(mod.pitchBias, 1.06, accuracy: 0.01)
     }
 
     // MARK: - EWMA behavior
@@ -97,10 +97,10 @@ final class VelocityModulationTests: XCTestCase {
             let mod = velocityModulation(for: event(ts: 1_000_000 + UInt64(iki * 1_000_000)),
                                          state: state,
                                          machToSec: machToSec)
-            XCTAssertGreaterThanOrEqual(mod.gain, 0.72 - 0.001)
+            XCTAssertGreaterThanOrEqual(mod.gain, 0.55 - 0.001)
             XCTAssertLessThanOrEqual(mod.gain, 1.0 + 0.001)
-            XCTAssertGreaterThanOrEqual(mod.pitchBias, 0.97 - 0.001)
-            XCTAssertLessThanOrEqual(mod.pitchBias, 1.03 + 0.001)
+            XCTAssertGreaterThanOrEqual(mod.pitchBias, 0.94 - 0.001)
+            XCTAssertLessThanOrEqual(mod.pitchBias, 1.06 + 0.001)
         }
     }
 }

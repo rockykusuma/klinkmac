@@ -31,8 +31,9 @@ func velocityModulation(for event: KeyEvent,
     //   0.40s (≈30 WPM)  → 1.0 (slow, heavy)
     let raw = (state.pointee.avgIKI - 0.08) / 0.32
     let intensity = Float(min(1.0, max(0.0, raw)))
-    return (gain: 0.72 + 0.28 * intensity,
-            pitchBias: 1.03 - 0.06 * intensity)
+    // gain range 0.55–1.0 (~5dB swing), pitch range 0.94–1.06 (~one semitone).
+    return (gain: 0.55 + 0.45 * intensity,
+            pitchBias: 1.06 - 0.12 * intensity)
 }
 
 public final class AudioEngine {
