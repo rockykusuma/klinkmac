@@ -297,8 +297,17 @@ extension AppState {
             guard let self, !self.monitorStarted else { return }
             self.isTrusted = self.accessibilityManager.isTrusted
             self.startMonitor()
+            // CGEventTap can fail transiently right after permission grant; keep polling to retry.
+            if !self.monitorStarted {
+                self.accessibilityManager.startPolling()
+            }
         }
         accessibilityManager.startPolling()
+    }
+
+    func ensureMonitorStarted() {
+        guard accessibilityManager.isTrusted && !monitorStarted else { return }
+        startMonitor()
     }
 
     private func startMonitor() {
