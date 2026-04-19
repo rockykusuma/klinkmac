@@ -12,6 +12,12 @@
 
 set -euo pipefail
 
+# Load credentials from .env if present (never committed).
+if [[ -f "$(dirname "$0")/.env" ]]; then
+  # shellcheck source=.env
+  source "$(dirname "$0")/.env"
+fi
+
 TEAM_ID="${TEAM_ID:-}"
 APP_BUNDLE_ID="${APP_BUNDLE_ID:-com.klinkmac.KlinkMac}"
 SCHEME="KlinkMac"
