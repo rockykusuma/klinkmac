@@ -26,10 +26,31 @@ KlinkMac makes any Mac keyboard sound like a premium mechanical keyboard. Each k
 ## Requirements
 
 - macOS 13.0+ (Apple Silicon or Intel)
-- Xcode 16+ (to build from source)
 - Accessibility permission (required to capture system-wide keystrokes)
 
-## Building
+## Install
+
+### Homebrew (recommended)
+
+```bash
+brew install --cask rockykusuma/klinkmac/klinkmac
+```
+
+This auto-taps and installs the signed + notarized release in one command.
+
+### Direct download
+
+Grab the latest `KlinkMac.dmg` from [Releases](https://github.com/rockykusuma/klinkmac/releases) → open → drag to Applications.
+
+### First run
+
+1. Launch from Spotlight or Applications
+2. Grant **Accessibility** permission when prompted (System Settings → Privacy & Security → Accessibility → enable KlinkMac)
+3. App lives in the menu bar — no Dock icon
+
+## Building from source
+
+- Requires Xcode 16+
 
 ```bash
 open KlinkMac/KlinkMac.xcodeproj
@@ -38,8 +59,6 @@ open KlinkMac/KlinkMac.xcodeproj
 1. In **Signing & Capabilities**, set your Apple Developer team
 2. Select the **KlinkMac** scheme and hit ⌘R
 3. Grant Accessibility permission when prompted
-
-The app lives in the menu bar — no Dock icon.
 
 ## Sound packs
 
