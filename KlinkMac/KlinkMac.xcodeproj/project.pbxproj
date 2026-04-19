@@ -32,7 +32,6 @@
 		960F97362F921B8B005E52AE /* Exceptions for "KlinkMac" folder in "KlinkMac" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Assets.xcassets,
 				Info.plist,
 				"Resources/Packs/classic-keyboard/1.wav",
 				"Resources/Packs/classic-keyboard/2.wav",
