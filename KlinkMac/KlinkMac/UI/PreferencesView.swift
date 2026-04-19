@@ -7,13 +7,14 @@ struct PreferencesView: View {
     @Environment(\.klinkTheme) private var theme
 
     enum PrefTab: CaseIterable {
-        case general, packs, profiles, about
+        case general, packs, profiles, overlay, about
 
         var title: String {
             switch self {
             case .general:  "General"
             case .packs:    "Packs"
             case .profiles: "Profiles"
+            case .overlay:  "Overlay"
             case .about:    "About"
             }
         }
@@ -23,6 +24,7 @@ struct PreferencesView: View {
             case .general:  "gearshape.fill"
             case .packs:    "music.note.list"
             case .profiles: "app.connected.to.app.below.fill"
+            case .overlay:  "keyboard.badge.waveform"
             case .about:    "info.circle.fill"
             }
         }
@@ -79,6 +81,9 @@ struct PreferencesView: View {
                 .transition(.opacity)
         } else if selectedTab == .profiles {
             ProfilesContent(appState: appState)
+                .transition(.opacity)
+        } else if selectedTab == .overlay {
+            OverlayContent(appState: appState)
                 .transition(.opacity)
         } else {
             AboutContent()

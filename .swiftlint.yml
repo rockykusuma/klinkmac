@@ -13,6 +13,10 @@ line_length:
   ignores_comments: true
   ignores_urls: true
 
+file_length:
+  warning: 500
+  error: 800
+
 # CLAUDE.md: Never use print() in the codebase — use os.Logger.
 custom_rules:
   no_print_statements:

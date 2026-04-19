@@ -101,6 +101,12 @@ final class AppState {
     private(set) var packRecorder: PackRecorder?
     private var recordPackWindow: NSWindow?
 
+    // MARK: Phase 4E — Typing visualizer overlay
+
+    private(set) var pressedKeys: Set<UInt16> = []
+    private let visualizerController = VisualizerWindowController()
+    private var pressedKeyReleaseTasks: [UInt16: Task<Void, Never>] = [:]
+
     // MARK: Engine + monitor
 
     let accessibilityManager = AccessibilityManager()
@@ -131,7 +137,15 @@ final class AppState {
         }
 
         let q = audioEngine.eventQueue
-        monitor.onEvent = { [q] (event: KeyEvent) in _ = q.push(event) }
+        monitor.onEvent = { [q, weak self] (event: KeyEvent) in
+            _ = q.push(event)
+            // Fan out to main thread for visualizer UI.
+            // Check happens on main to avoid racing the @MainActor-isolated settings flag.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.settings.visualizerEnabled else { return }
+                self.handleVisualizerEvent(event)
+            }
+        }
 
         refreshOutputDevices()
 
@@ -151,10 +165,14 @@ final class AppState {
         } else {
             isTrusted = true
         }
+
+        if settings.visualizerEnabled { visualizerController.show(appState: self) }
     }
+}
 
-    // MARK: - Pack management
+// MARK: - Pack management
 
+extension AppState {
     func selectPack(_ pack: InstalledPack) {
         loadPack(pack)
     }
@@ -340,5 +358,49 @@ final class AppState {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         permissionWindow = window
+    }
+}
+
+// MARK: - Visualizer overlay
+
+extension AppState {
+    func setVisualizerEnabled(_ enabled: Bool) {
+        settings.visualizerEnabled = enabled
+        if enabled {
+            visualizerController.show(appState: self)
+        } else {
+            visualizerController.hide()
+            pressedKeyReleaseTasks.values.forEach { $0.cancel() }
+            pressedKeyReleaseTasks.removeAll()
+            pressedKeys.removeAll()
+        }
+    }
+
+    func setVisualizerPosition(_ position: String) {
+        settings.visualizerPosition = position
+        if let pos = VisualizerWindowController.Position(rawValue: position) {
+            visualizerController.reposition(for: pos)
+        }
+    }
+
+    fileprivate func handleVisualizerEvent(_ event: KeyEvent) {
+        let kc = event.keycode
+        if event.isDown {
+            pressedKeys.insert(kc)
+            pressedKeyReleaseTasks[kc]?.cancel()
+            // Auto-release after 180ms in case keyUp is swallowed by foreground app.
+            pressedKeyReleaseTasks[kc] = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(180))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    self?.pressedKeys.remove(kc)
+                    self?.pressedKeyReleaseTasks[kc] = nil
+                }
+            }
+        } else {
+            pressedKeyReleaseTasks[kc]?.cancel()
+            pressedKeyReleaseTasks[kc] = nil
+            pressedKeys.remove(kc)
+        }
     }
 }
