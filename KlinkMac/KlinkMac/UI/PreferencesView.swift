@@ -220,13 +220,6 @@ private struct GeneralContent: View {
                             ))
                         }
                         Divider().background(Color.klinkSurfaceHigh).padding(.leading, 46)
-                        settingsRow(label: "Meeting mute", icon: "mic.slash.fill") {
-                            KlinkToggle(isOn: Binding(
-                                get: { appState.settings.meetingMuteEnabled },
-                                set: { appState.setMeetingMuteEnabled($0) }
-                            ))
-                        }
-                        Divider().background(Color.klinkSurfaceHigh).padding(.leading, 46)
                         settingsRow(label: "Velocity-aware dynamics", icon: "waveform.path.ecg") {
                             KlinkToggle(isOn: Binding(
                                 get: { appState.settings.velocityDynamicsEnabled },

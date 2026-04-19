@@ -39,11 +39,6 @@ final class AppState {
             updateEngineEnabled()
         }
     }
-    func setMeetingMuteEnabled(_ enabled: Bool) {
-        settings.meetingMuteEnabled = enabled
-        updateEngineEnabled()
-    }
-
     func setVelocityDynamicsEnabled(_ enabled: Bool) {
         settings.velocityDynamicsEnabled = enabled
         audioEngine.setVelocityDynamics(enabled)
@@ -97,10 +92,6 @@ final class AppState {
 
     var isTrusted: Bool = false
 
-    // MARK: Phase 4 features
-
-    private(set) var isMeetingMuted: Bool = false
-
     // MARK: Phase 4D — Record pack
 
     private(set) var packRecorder: PackRecorder?
@@ -117,7 +108,6 @@ final class AppState {
     let accessibilityManager = AccessibilityManager()
     let audioEngine = AudioEngine()
     private let monitor = KeyEventMonitor()
-    private let meetingMuteMonitor = MeetingMuteMonitor()
     private let profileManager = ProfileManager()
     private var defaultPackID: String = ""
     private var permissionWindow: NSWindow?
@@ -154,9 +144,6 @@ final class AppState {
         }
 
         refreshOutputDevices()
-
-        meetingMuteMonitor.onChanged = { [weak self] _ in self?.updateEngineEnabled() }
-        meetingMuteMonitor.start()
 
         profileManager.onMatch = { [weak self] packID in self?.handleProfileMatch(packID) }
         profileManager.start { [weak self] in self?.settings.profiles ?? [] }
@@ -270,9 +257,7 @@ extension AppState {
     }
 
     private func updateEngineEnabled() {
-        let muted = settings.meetingMuteEnabled && meetingMuteMonitor.isMeetingActive
-        isMeetingMuted = muted
-        audioEngine.setEnabled(!settings.isPaused && !muted)
+        audioEngine.setEnabled(!settings.isPaused)
     }
 
     private func handleProfileMatch(_ packID: String?) {

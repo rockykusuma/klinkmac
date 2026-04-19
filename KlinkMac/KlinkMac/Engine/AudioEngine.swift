@@ -71,9 +71,17 @@ public final class AudioEngine {
     public func setVelocityDynamics(_ enabled: Bool) {
         velocityFlag.store(enabled, ordering: .releasing)
     }
-
     // swiftlint:disable:next function_body_length
     public func start() throws {
+        // Stop FIRST — AudioOutputUnitStop is synchronous; blocks until the current
+        // I/O cycle finishes so the render thread cannot call pop() after the reset.
+        // Call unconditionally: safe no-op if already stopped, but needed when the
+        // engine is still running (e.g. setOutputDevice path, or if isRunning lags
+        // behind the internal stopped state after AVAudioEngineConfigurationChange).
+        engine.stop()
+        // Detach old source node after stop — render callbacks are guaranteed done.
+        if let old = sourceNode { engine.detach(old); sourceNode = nil }
+        // Reset thread assertions now — I/O thread is fully quiesced.
         eventQueue.resetThreadAssertions()
 
         // Re-register on every start so we don't stack observers across restarts.
@@ -83,10 +91,14 @@ public final class AudioEngine {
             object: engine,
             queue: nil
         ) { [weak self] _ in
-            // CoreAudio changed the I/O thread (device plug/unplug, sleep/wake).
-            // Reset SPSC thread assertions then restart on the main thread.
-            self?.eventQueue.resetThreadAssertions()
-            DispatchQueue.main.async { try? self?.start() }
+            // Delay restart: gives the old I/O thread time to fully quiesce before
+            // we reset thread assertions and bring up a new render thread.
+            // Do NOT call resetThreadAssertions() here — the old render thread may
+            // still be active on the notification thread; resetting early causes it
+            // to re-store its ID, which then races the new thread → SPSC crash.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                try? self?.start()
+            }
         }
 
         applyOutputDevice(targetDeviceID)
