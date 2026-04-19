@@ -84,55 +84,6 @@ open KlinkMac/KlinkMac.xcodeproj
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full threading model, latency budget, and Phase 4 subsystem details.
 
-## Directory structure
-
-```
-klinkmac/
-├── KlinkMac/
-│   ├── KlinkMac.xcodeproj
-│   ├── KlinkMac.entitlements
-│   └── KlinkMac/
-│       ├── App/
-│       │   ├── AppState.swift          central observable state
-│       │   ├── AppDelegate.swift       NSApplication delegate
-│       │   ├── AppProfile.swift        app-aware profile model
-│       │   ├── MeetingMuteMonitor.swift detects active calls
-│       │   └── ProfileManager.swift    profile switching logic
-│       ├── Engine/                     audio engine — no UI imports
-│       │   ├── AudioEngine.swift
-│       │   ├── AtomicBankPointer.swift
-│       │   ├── EventQueue.swift        lock-free SPSC ring buffer
-│       │   ├── KeyEventMonitor.swift   CGEventTap wrapper
-│       │   ├── PackRecorder.swift      mic recording → pack
-│       │   ├── SampleBank.swift
-│       │   └── VoiceAllocator.swift
-│       ├── Packs/
-│       │   ├── PackFormat.swift        manifest model
-│       │   └── PackLoader.swift        bundled + user pack loading
-│       ├── Permissions/
-│       │   └── AccessibilityManager.swift
-│       ├── Settings/
-│       │   └── SettingsStore.swift     UserDefaults-backed persistence
-│       ├── UI/
-│       │   ├── DesignSystem.swift           color tokens, shared components
-│       │   ├── MenuBarView.swift            menu bar panel
-│       │   ├── OnboardingView.swift         first-launch flow
-│       │   ├── PreferencesView.swift        preferences window shell
-│       │   ├── PreferencesPackViews.swift   pack grid, export, drop zone
-│       │   ├── PreferencesProfileViews.swift app profile rules UI
-│       │   ├── PreferencesOverlayView.swift visualizer overlay settings
-│       │   ├── KeyboardLayoutView.swift     on-screen keyboard for recording
-│       │   ├── RecordPackView.swift         record-your-own-pack UI
-│       │   ├── VisualizerView.swift         floating keyboard visualizer
-│       │   └── VisualizerWindow.swift       borderless click-through NSWindow
-│       └── Resources/Packs/            15 bundled sound packs
-├── KlinkMacTests/                      unit tests
-├── release.sh                          sign + notarize + DMG script
-├── ARCHITECTURE.md
-├── SOUND-PACK-FORMAT.md
-└── LICENSE
-```
-
 ## Status
 
 | Phase | Goal | Status |
