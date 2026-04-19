@@ -325,6 +325,7 @@ private struct StepDone: View {
 
             GradientButton(label: "Start Using KlinkMac") {
                 appState.settings.hasCompletedOnboarding = true
+                appState.ensureMonitorStarted()
                 NSApp.keyWindow?.close()
             }
         }
