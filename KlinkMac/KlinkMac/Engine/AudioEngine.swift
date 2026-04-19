@@ -161,14 +161,9 @@ public final class AudioEngine {
 
     public func stop() { engine.stop() }
 
-    /// Precomputed mach_absolute_time → seconds conversion factor.
-    /// CoreAudio's event timestamps are in mach_absolute_time units which depend on hardware.
-    private static func machTimebaseToSeconds() -> Double {
-        var info = mach_timebase_info_data_t()
-        mach_timebase_info(&info)
-        // nanoseconds per tick = numer / denom; seconds per tick = numer / denom / 1e9
-        return Double(info.numer) / Double(info.denom) / 1_000_000_000.0
-    }
+    /// CGEvent.timestamp is in nanoseconds since boot, NOT mach_absolute_time ticks.
+    /// Using mach_timebase (125/3 on Apple Silicon) over-scales by ~42×. Always divide by 1e9.
+    private static func machTimebaseToSeconds() -> Double { 1e-9 }
 
     public func setBank(_ bank: SampleBank) { bankPointer.store(bank) }
 
