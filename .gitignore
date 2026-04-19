@@ -71,6 +71,9 @@ fastlane/test_output
 build/
 DerivedData/
 
+# Credentials
+.env
+
 # Internal planning docs
 ROADMAP.md
 DESIGN.md
