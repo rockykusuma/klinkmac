@@ -1,11 +1,11 @@
 # SwiftLint configuration for KlinkMac
 
 included:
-  - KlinkMac/KlinkMac
+  - KlinkMac
 
 excluded:
-  - KlinkMac/KlinkMacTests
-  - KlinkMac/KlinkMac.xcodeproj
+  - KlinkMacTests
+  - KlinkMac.xcodeproj
 
 line_length:
   warning: 120

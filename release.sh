@@ -21,7 +21,7 @@ fi
 TEAM_ID="${TEAM_ID:-}"
 APP_BUNDLE_ID="${APP_BUNDLE_ID:-com.klinkmac.KlinkMac}"
 SCHEME="KlinkMac"
-PROJECT="KlinkMac/KlinkMac.xcodeproj"
+PROJECT="KlinkMac.xcodeproj"
 BUILD_DIR="$(pwd)/build"
 APP_NAME="KlinkMac"
 DMG_NAME="${APP_NAME}.dmg"
@@ -64,7 +64,7 @@ echo "==> Signing $APP_NAME.app"
 codesign \
   --sign "Developer ID Application" \
   --options runtime \
-  --entitlements "KlinkMac/KlinkMac.entitlements" \
+  --entitlements "KlinkMac.entitlements" \
   --timestamp \
   --deep \
   --force \
