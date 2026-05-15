@@ -52,6 +52,7 @@ public final class AudioEngine {
     private var sourceNode: AVAudioSourceNode?
     private var targetDeviceID: AudioDeviceID?
     private var configChangeObserver: Any?
+    private(set) var forceBuiltIn: Bool = false
 
     // Updated in start() from the actual output device format.
     private(set) var sampleRate: Double = 48000
@@ -190,6 +191,15 @@ public final class AudioEngine {
         try start()
     }
 
+    public func setForceBuiltIn(_ enabled: Bool) throws {
+        guard forceBuiltIn != enabled else { return }
+        forceBuiltIn = enabled
+        guard engine.isRunning else { return }
+        if let node = sourceNode { engine.detach(node); sourceNode = nil }
+        engine.stop()
+        try start()
+    }
+
     // MARK: - Output device discovery
 
     public static func outputDevices() -> [(id: AudioDeviceID, name: String)] {
@@ -241,7 +251,9 @@ public final class AudioEngine {
     private func applyOutputDevice(_ deviceID: AudioDeviceID?) {
         guard let audioUnit = engine.outputNode.audioUnit else { return }
         var target: AudioDeviceID
-        if let deviceID, deviceID != 0 {
+        if forceBuiltIn, let builtIn = Self.builtInOutputDeviceID() {
+            target = builtIn
+        } else if let deviceID, deviceID != 0 {
             target = deviceID
         } else {
             var defaultID = AudioDeviceID(0)
@@ -263,6 +275,25 @@ public final class AudioEngine {
         if status != noErr {
             logger.warning("Could not set output device \(target): OSStatus \(status)")
         }
+    }
+
+    /// Returns the AudioDeviceID for the Mac's internal speakers, or nil on hardware without built-ins.
+    /// Robust across locales — matches by CoreAudio transport type rather than device name.
+    public static func builtInOutputDeviceID() -> AudioDeviceID? {
+        for (id, _) in outputDevices() {
+            var addr = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyTransportType,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var transport = UInt32(0)
+            var size = UInt32(MemoryLayout<UInt32>.size)
+            let status = AudioObjectGetPropertyData(id, &addr, 0, nil, &size, &transport)
+            if status == noErr, transport == kAudioDeviceTransportTypeBuiltIn {
+                return id
+            }
+        }
+        return nil
     }
 
     private static func hasOutputStream(_ deviceID: AudioDeviceID) -> Bool {

@@ -41,6 +41,10 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(outputDeviceName, forKey: Key.outputDeviceName) }
     }
 
+    var forceBuiltInOutput: Bool = true {
+        didSet { UserDefaults.standard.set(forceBuiltInOutput, forKey: Key.forceBuiltInOutput) }
+    }
+
     var profiles: [AppProfile] = [] {
         didSet {
             if let data = try? JSONEncoder().encode(profiles) {
@@ -75,6 +79,7 @@ final class SettingsStore {
         isPaused = d.bool(forKey: Key.isPaused)
         hasCompletedOnboarding = d.bool(forKey: Key.hasCompletedOnboarding)
         outputDeviceName = d.string(forKey: Key.outputDeviceName) ?? ""
+        forceBuiltInOutput = d.object(forKey: Key.forceBuiltInOutput) as? Bool ?? true
         if let data = d.data(forKey: Key.profiles),
            let decoded = try? JSONDecoder().decode([AppProfile].self, from: data) {
             profiles = decoded
@@ -135,6 +140,7 @@ final class SettingsStore {
         static let themeID               = "themeID"
         static let profiles              = "profiles"
         static let outputDeviceName      = "outputDeviceName"
+        static let forceBuiltInOutput    = "forceBuiltInOutput"
         static let visualizerEnabled     = "visualizerEnabled"
         static let visualizerPosition    = "visualizerPosition"
         static let visualizerOpacity     = "visualizerOpacity"

@@ -60,6 +60,15 @@ final class AppState {
         try? audioEngine.setOutputDevice(device?.id)
     }
 
+    func setForceBuiltInOutput(_ enabled: Bool) {
+        settings.forceBuiltInOutput = enabled
+        try? audioEngine.setForceBuiltIn(enabled)
+    }
+
+    var hasBuiltInSpeakers: Bool {
+        AudioEngine.builtInOutputDeviceID() != nil
+    }
+
     func addProfile(_ profile: AppProfile) {
         settings.profiles.append(profile)
         profileManager.reevaluate()
@@ -120,6 +129,7 @@ final class AppState {
     init() {
         audioEngine.volume = settings.volume
         audioEngine.setVelocityDynamics(settings.velocityDynamicsEnabled)
+        try? audioEngine.setForceBuiltIn(settings.forceBuiltInOutput)
         try? audioEngine.start()
 
         discoverPacks()
