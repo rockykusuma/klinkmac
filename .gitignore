@@ -74,6 +74,9 @@ DerivedData/
 # Credentials
 .env
 
+# Git worktrees
+.worktrees/
+
 # Internal planning docs
 ROADMAP.md
 DESIGN.md

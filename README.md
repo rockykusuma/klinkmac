@@ -40,7 +40,7 @@ User packs live at `~/Library/Application Support/com.klinkmac.KlinkMac/Packs/`.
 ## Contributing
 
 ```bash
-open KlinkMac/KlinkMac.xcodeproj
+open KlinkMac.xcodeproj
 ```
 
 Set your Apple Developer team in **Signing & Capabilities**, then ⌘R.
