@@ -16,6 +16,30 @@ Or download [`KlinkMac.dmg`](https://github.com/rockykusuma/klinkmac/releases/la
 
 Requires macOS 13.0+.
 
+### Upgrade
+
+```bash
+brew upgrade --cask rockykusuma/klinkmac/klinkmac
+```
+
+If upgrade fails with `It seems the App source '/Applications/KlinkMac.app' is not there` (the app was manually deleted or moved):
+
+```bash
+brew reinstall --cask --force rockykusuma/klinkmac/klinkmac
+```
+
+### Uninstall
+
+```bash
+brew uninstall --cask rockykusuma/klinkmac/klinkmac
+```
+
+To also wipe preferences and user packs:
+
+```bash
+brew uninstall --cask --zap rockykusuma/klinkmac/klinkmac
+```
+
 ## Features
 
 - **15 bundled sound packs** — Cherry MX Blue / Brown / Red / Black (ABS + PBT), NK Cream, Topre, and more
