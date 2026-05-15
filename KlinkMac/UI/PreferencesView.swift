@@ -191,6 +191,18 @@ private struct GeneralContent: View {
                         Label("Output Device", systemImage: "speaker.wave.2")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color.klinkText)
+                        if appState.hasBuiltInSpeakers {
+                            HStack(spacing: 12) {
+                                Text("Always use MacBook speakers")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.klinkText)
+                                Spacer()
+                                KlinkToggle(isOn: Binding(
+                                    get: { appState.settings.forceBuiltInOutput },
+                                    set: { appState.setForceBuiltInOutput($0) }
+                                ))
+                            }
+                        }
                         Picker("", selection: Binding(
                             get: { appState.selectedOutputDevice?.name ?? "" },
                             set: { name in
@@ -205,6 +217,7 @@ private struct GeneralContent: View {
                         }
                         .pickerStyle(.menu)
                         .tint(theme.accent)
+                        .disabled(appState.settings.forceBuiltInOutput && appState.hasBuiltInSpeakers)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
