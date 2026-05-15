@@ -86,7 +86,7 @@ final class AccessibilityManager {
         }
     }
 
-    private func checkTrust() {
+    func checkTrust() {
         let trusted = AXIsProcessTrusted()
         isTrusted = trusted
         if trusted {

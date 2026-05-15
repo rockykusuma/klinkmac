@@ -180,6 +180,7 @@ private struct StepPermission: View {
                         appState.accessibilityManager.requestPermission()
                     }
                     Button("I've enabled it — Continue") {
+                        appState.refreshTrustState()
                         onNext()
                     }
                     .buttonStyle(.plain)
@@ -324,6 +325,7 @@ private struct StepDone: View {
             }
 
             GradientButton(label: "Start Using KlinkMac") {
+                appState.refreshTrustState()
                 appState.settings.hasCompletedOnboarding = true
                 appState.ensureMonitorStarted()
                 NSApp.keyWindow?.close()

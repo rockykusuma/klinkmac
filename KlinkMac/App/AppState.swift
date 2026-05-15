@@ -305,6 +305,11 @@ extension AppState {
         startMonitor()
     }
 
+    func refreshTrustState() {
+        accessibilityManager.checkTrust()
+        isTrusted = accessibilityManager.isTrusted
+    }
+
     private func startMonitor() {
         monitorStarted = true
         do {
