@@ -290,7 +290,7 @@ private extension PackRecorder {
 
 // MARK: - Helpers
 
-private extension PackRecorder {
+extension PackRecorder {
     func writeWAV(samples: [Float], sampleRate sr: Double, to url: URL) throws {
         guard !samples.isEmpty else { return }
         let fmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!

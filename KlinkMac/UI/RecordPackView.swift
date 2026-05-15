@@ -237,8 +237,8 @@ private extension RecordPackView {
             Button("Open Settings") {
                 let privacyMicPath = "x-apple.systempreferences:" +
                     "com.apple.preference.security?Privacy_Microphone"
-                // swiftlint:disable:next force_unwrapping
-                NSWorkspace.shared.open(URL(string: privacyMicPath)!)
+                guard let url = URL(string: privacyMicPath) else { return }
+                NSWorkspace.shared.open(url)
             }
             .buttonStyle(.plain)
             .font(.system(size: 11, weight: .medium))
