@@ -21,6 +21,7 @@ struct MenuBarView: View {
         .frame(width: 340)
         .background(Color.klinkBackground)
         .environment(\.colorScheme, .dark)
+        .onAppear { appState.refreshTrustState() }
     }
 
     // MARK: - Header
